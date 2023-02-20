@@ -31,6 +31,7 @@ require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'model_expo
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'payrollexporter'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'json_to_xlsx'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'excel_to_jrxml'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'excel_to_vrxml'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'style'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'pen'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'band'))
