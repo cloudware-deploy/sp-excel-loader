@@ -21,18 +21,18 @@
 #
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'sp/excel/loader/version'
+require 'xls/loader/version'
 
 Gem::Specification.new do |spec|
   spec.name          = 'xls2vrxml'
-  spec.version       = Sp::Excel::Loader::VERSION
+  spec.version       = Xls::Loader::VERSION
   spec.email         = ['emi@cldware.com']
   spec.bindir        = 'bin'
   spec.executables   = ['xls2jrxml']
   spec.date          = '2012-10-17'
   spec.summary       = 'xls2vrxml'
   spec.description   = 'Extends RubyXL adding handling of excel tables and other conversion utilies'
-  spec.authors       = ['Vitor Pinho']
+  spec.authors       = ['Cloudware S.A.']
   spec.files         = Dir.glob("lib/**/*") + Dir.glob("spec/**/*") + %w(LICENSE README.md Gemfile)
   spec.homepage      = 'https://github.com/cloudware-deploy/xls2vrxml'
   spec.license       = 'AGPL 3.0'

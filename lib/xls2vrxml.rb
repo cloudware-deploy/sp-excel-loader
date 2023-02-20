@@ -4,4 +4,4 @@
 # This file is part of xls2vrxml.
 # Based on sp-excel-loader.
 #
-require File.join(File.dirname(__FILE__), 'sp/excel/loader')
+require File.join(File.dirname(__FILE__), 'xls/loader')
