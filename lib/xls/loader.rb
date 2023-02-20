@@ -28,7 +28,6 @@ require 'json'
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'rubyxl_table_patch'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'workbookloader'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'excel_to_jrxml'))
-require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'excel_to_vrxml'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'style'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'pen'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'band'))
@@ -52,6 +51,9 @@ require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'j
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'property'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'property_expression'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'extensions'))
+
+require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'vrxml', 'excel_to_vrxml'))
+
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'version'))
 
 module Xls

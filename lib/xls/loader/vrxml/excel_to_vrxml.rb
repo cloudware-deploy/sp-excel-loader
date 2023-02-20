@@ -19,9 +19,9 @@
 # along with xls2vrxml.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require_relative 'excel_to_jrxml'
+require_relative '../jrxml/excel_to_jrxml'
 
-require_relative '../binding'
+require_relative '../vrxml/binding'
 
 module Xls
   module Loader
