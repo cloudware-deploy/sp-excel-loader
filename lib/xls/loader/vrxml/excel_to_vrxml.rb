@@ -25,9 +25,9 @@ require_relative '../vrxml/binding'
 
 module Xls
   module Loader
-    module Jrxml
+    module Vrxml
 
-      class ExcelToVrxml < ExcelToJrxml          
+      class ExcelToVrxml < ::Xls::Loader::Jrxml::ExcelToJrxml          
 
         private
 
