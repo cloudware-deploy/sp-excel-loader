@@ -29,8 +29,6 @@ require 'optparse'
 require 'xls/loader'
 require 'xls/loader/jrxml/jasper'
 
-require 'byebug'
-
 $args = {
   out_dir: '.',
   compat: false
