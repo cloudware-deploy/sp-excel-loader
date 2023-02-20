@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    sp-excel-loader (0.3.52)
+    xls2vrxml (0.3.52)
       awesome_print
       json
       rubyXL
@@ -18,7 +18,6 @@ GEM
       mini_portile2 (~> 2.8.0)
       racc (~> 1.4)
     racc (1.6.2)
-    rake (12.3.1)
     rspec (3.7.0)
       rspec-core (~> 3.7.0)
       rspec-expectations (~> 3.7.0)
@@ -43,9 +42,8 @@ PLATFORMS
 DEPENDENCIES
   bundler (~> 1.6)
   byebug
-  rake
   rspec
-  sp-excel-loader!
+  xls2vrxml!
 
 BUNDLED WITH
    1.17.3
