@@ -103,8 +103,6 @@ module Xls
         values.each do | k, v |
           cell = data[k.to_s][:cell]
           # ... update value ...
-          ap k.to_s
-          ap v
           if nil == cell
             # ... by adding a new cell ...
             sheet.add_cell(data[k.to_s][:row], data[k.to_s][:column], v)
