@@ -38,7 +38,7 @@ Gem::Specification.new do |spec|
   spec.license       = 'AGPL 3.0'
   spec.require_paths = ['lib']
 
-  spec.add_development_dependency 'bundler', '~> 1.6'
+  spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'rspec'
   spec.add_development_dependency 'byebug'
 
