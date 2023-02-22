@@ -27,9 +27,16 @@ module Xls
       class Binding
 
         attr_accessor :sheet
-        attr_accessor :table
+        attr_accessor :tables
         attr_accessor :columns
         attr_accessor :map
+
+        ALL = [ 
+            { key: :parameters, name: 'PARAMETERS_BINDING' }, 
+            { key: :fields    , name: 'FIELDS_BINDING'     },
+            { key: :variables , name: 'VARIABLES_BINDING'  },
+            { key: :bands     , name: 'BANDS_BINDING'      }
+        ]
 
         #
         # Initializer binding for a workbook
@@ -45,26 +52,38 @@ module Xls
         # Load 'binding' data from the workbook.
         #
         def load()
-          @sheet = Binding.get_sheet(named: 'Binding', at: @workbook)
-          @table = Binding.get_table(named: 'CASPER', at: @sheet)
-          @columns['Name']       = get_table_column_index(table: table, named: 'Name')
-          @columns['Value']      = get_table_column_index(table: table, named: 'Value')
-          @columns['Updated At'] = get_table_column_index(table: table, named: 'Updated At')
-          @map = {}
-          Binding.iterate_table(table: @table, at: @sheet) do | row, cells |
-            data = {}
-            @columns.each do | k, _ |
-              data[k] = {
-                cell: cells[@columns[k]],
-                name: k,
-                value: cells[@columns[k]] ? cells[@columns[k]].value : nil,
-                row: row,
-                column: @columns[k]
-              }
-            end
-            @map[data['Name'][:value]] = data
+          # load 'binding' sheet
+          @sheet  = Binding.get_sheet(named: 'Binding', at: @workbook)
+          # load all tables
+          @tables = {}
+          ALL.each do | table |
+            @tables[table[:key]] = Binding.get_table(named: table[:name], at: @sheet)
           end
-          @named_cells = Binding.get_named_cells_map(sheet: Binding.get_sheet(named: 'Layout', at: @workbook), at: @workbook)
+          # ref
+          ref_table = @tables[ALL[0][:key]]
+          if nil == ref_table
+            raise "Reference table NOT found!"
+          end
+          @columns['Name']       = get_table_column_index(table: ref_table, named: 'Name')
+          @columns['Value']      = get_table_column_index(table: ref_table, named: 'Value')
+          @columns['Updated At'] = get_table_column_index(table: ref_table, named: 'Updated At')
+          @map = {}
+          @tables.each do | key, table |
+            @map[key] = {}
+            Binding.iterate_table(table: table, at: @sheet) do | row, cells |
+              data = {}
+              @columns.each do | k, _ |
+                data[k] = {
+                  cell: cells[@columns[k]],
+                  name: k,
+                  value: cells[@columns[k]] ? cells[@columns[k]].value : nil,
+                  row: row,
+                  column: @columns[k]
+                }
+              end # columns
+              @map[key][data['Name'][:value]] = data
+            end # table
+          end # tables loop
         end
 
         #
@@ -74,7 +93,7 @@ module Xls
         # @param field Field name ( string ) to patch.
         # @param value Field value ( JSON object ) to set.
         #
-        def patch(field:, value:)
+        def patch(type:, field:, value:)
           values = { 'Value': value, 'Updated At': Time.now }
           # grab field data
           data = @map[field]
@@ -198,6 +217,67 @@ module Xls
               row_cells << at[row][column]
             end
             yield row, row_cells
+          end
+        end
+
+      public
+
+        #
+        # Map C/JavaScript types to Java types.
+        #
+        # @param a_type C or JavaScript type
+        #
+        # @return Mapped type.
+        #
+        def self.to_java_class(a_type)
+          case a_type.downcase
+          when 'double', 'floa'
+            return 'java.lang.Double'
+          when 'integer', 'int'
+            return 'java.lang.Integer'
+          when 'boolean', 'bool'
+            return 'java.lang.Boolean'
+          when 'string'
+            return 'java.lang.String'
+          when 'Date'
+            return 'java.util.Date'
+          else
+            raise "Don't know how to convert C/JavaScript type '#{a_type}' to Java type!"
+          end
+        end
+
+        # 
+        # Parse a string as JSON.
+        #
+        # @param type  Hint for what kind of binding object is being parsed.
+        # @param value String to parse as JSON object.
+        #
+        def self.parse(type:, value:)
+          begin
+            binding = JSON.parse(value, symbolize_names: true)
+          rescue JSON::ParserError => e
+            puts "  ⌄".red
+            puts "⨯ #{type.to_s} binding value is NOT a valid JSON object!".red
+            puts "#{value}".yellow
+            puts "  ⌃ error ( #{e.message} )".red
+            raise e # or  exit -1
+          end
+        end
+
+        #
+        # Log and raise an error.
+        #
+        # @param msg Message to display.
+        # @param error Error to raise.
+        #
+        def self.halt(msg:, error: nil)
+          puts "  ⌄".red
+          puts "⨯ #{msg}".red
+          puts "  ⌃ error".red
+          if nil != error
+            raise error
+          else
+             raise "Stopped"
           end
         end
 

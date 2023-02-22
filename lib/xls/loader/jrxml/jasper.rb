@@ -41,11 +41,12 @@ module Xls
         #
         # Report class instance data
         #
-        attr_accessor :parameters
+        attr_reader :parameters
+        attr_reader :fields
+        attr_reader :variables
+
         attr_accessor :styles
         attr_accessor :style_set
-        attr_accessor :fields
-        attr_accessor :variables
         attr_accessor :builder
         attr_accessor :group
         attr_accessor :query_string
@@ -107,11 +108,13 @@ module Xls
           @is_summary_with_page_header_and_footer = true;
           @is_float_column_footer                 = true;
           @generator_version = Xls::Loader::VERSION.strip
-          @fields['data_row_type'] = Field.new('data_row_type')
-          @variables['ON_LAST_PAGE'] = Variable.new('ON_LAST_PAGE', 'java.lang.Boolean')
-
+          @fields["$['lines'][index]['data_row_type']"] = Field.new(name: "$['lines'][index]['data_row_type']", 
+            binding: JSON.parse({type: Vrxml::Binding.to_java_class('integer')}.to_json, symbolize_names: true)
+          )
+          @variables["$.$$VARIABLES[index]['ON_LAST_PAGE']"] = Variable.new(name: "$.$$VARIABLES[index]['ON_LAST_PAGE']", 
+            binding: JSON.parse({type: Vrxml::Binding.to_java_class('boolean')}.to_json, symbolize_names: true)
+          )
           @extension = ReportExtension.new(@report_name)
-
         end
 
         def update_page_size
@@ -157,7 +160,7 @@ module Xls
                               'isTitleNewPage'     => @is_title_new_page,
                               'isSummaryWithPageHeaderAndFooter' => @is_summary_with_page_header_and_footer,
                               'isFloatColumnFooter'              => @is_float_column_footer) {
-              xml.comment('created with sp-excel-loader ' + @generator_version)
+              xml.comment('created with xls2vexml ' + @generator_version)
             }
           end
 
@@ -220,7 +223,70 @@ module Xls
           @builder.to_xml(indent:2)
         end
 
-      end
+        #
+        # Add a parameter.
+        #
+        # @param id     ID
+        # @param name   Common name.
+        # @param caller For debug purpose only.
+        #
+        def add_parameter(id:, name:, java_class:, caller: caller_locations(1,1)[0].base_label)
+          if @parameters.has_key?(name)
+            return
+          end
+          
+          parameter = Parameter.new(name: name, java_class: java_class)
+
+          Vrxml::Log.TODO(msg: "#{__method__} called from #{caller} - NEEDS REVIEW")
+
+          # if @bindings.has_key? id
+          #   binding = @bindings[id]
+          #   if binding.respond_to? 'default' and binding.default != nil and binding.default.strip != ''
+          #     if binding.java_class == 'java.lang.String'
+          #       parameter.default_value_expression = "\"#{binding.default.strip}\""
+          #     else
+          #       parameter.default_value_expression = binding.default.strip
+          #     end
+          #   end
+          # end
+          @parameters[name] = parameter
+        end
+
+        #
+        # Add a field.
+        #
+        # @param id     ID
+        # @param name   Common name.
+        # @param caller For debug purpose only.
+        #
+        def add_field(id:, name:, java_class:, caller: caller_locations(1,1)[0].base_label)
+          if @fields.has_key?(name)
+            return
+          end
+          
+          Vrxml::Log.TODO(msg: "#{__method__} called from #{caller} - NEEDS REVIEW")
+
+          @fields[name] = Field.new(name: name, java_class: java_class)
+        end
+
+        #
+        # Add a variable.
+        #
+        # @param id     ID
+        # @param name   Common name.
+        # @param caller For debug purpose only.
+        #
+        def add_variable(id:, name:, java_class:, caller: caller_locations(1,1)[0].base_label)
+          if "PAGE_NUMBER" == name || @report.variables.has_key?(name)
+            return
+          end
+
+          Vrxml::Log.TODO(msg: "#{__method__} called from #{caller} - NEEDS REVIEW")
+
+          @report.variables[name] = Variable.new(name: name, java_class: java_class)
+        end
+
+      end # class 'JasperReport'
 
     end
   end

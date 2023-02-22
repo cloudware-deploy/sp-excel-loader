@@ -25,6 +25,7 @@ module Xls
 
       class Band
 
+        attr_reader   :tag
         attr_accessor :children
         attr_accessor :height
         attr_accessor :split_type
@@ -33,8 +34,9 @@ module Xls
         attr_accessor :auto_float
         attr_accessor :auto_stretch
         attr_accessor :stretch_type
-
-        def initialize
+        
+        def initialize(tag:)
+          @tag                   = tag
           @children              = Array.new
           @height                = 18;
           @split_type            = 'Prevent'

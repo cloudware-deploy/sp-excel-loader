@@ -21,6 +21,24 @@
 
 require 'set'
 
+require_relative 'parameter'
+require_relative 'field'
+require_relative 'variable'
+require_relative '../vrxml/binding'
+
+class String
+  
+  def to_underscore!
+    gsub!(/(.)([A-Z])/,'\1_\2')
+    downcase!
+  end
+
+  def to_underscore
+    dup.tap { |s| s.to_underscore! }
+  end
+
+end
+
 module Xls
   module Loader
     module Jrxml
@@ -92,16 +110,14 @@ module Xls
           '993366', # 61
           '333399', # 62
           '333333'  # 63
-        ]
+        ]              
 
         attr_reader   :report
         attr_reader   :bindings
 
-        def initialize (a_excel_filename, a_fields_map = nil, a_enable_cb_or_rb_edition=false, write_jrxml = true, a_allow_sub_bands = true)
+        def initialize (a_excel_filename, a_enable_cb_or_rb_edition=false, a_allow_sub_bands = true)
           super(a_excel_filename)
-          read_all_tables()
-          report_name = File.basename(a_excel_filename, '.xlsx')
-          @report = JasperReport.new(report_name)
+          @report_name                 = File.basename(a_excel_filename, '.xlsx')
           @current_band                = nil
           @first_row_in_band           = 0
           @band_type                   = nil
@@ -112,63 +128,84 @@ module Xls
           @band_split_type             = nil
           @basic_expressions           = false
           @allow_sub_bands             = a_allow_sub_bands
-          @bindings                    = a_fields_map
           @use_casper_bindings         = false
 
-          # If the field map is not supplied load aux tables from the same excel
-          if @bindings.nil?
-            @bindings = Hash.new
+          # TODO 2.0: review / fix @bindings usage @binding is the new var
+          @bindings = Hash.new
 
-            # Load parameters config table if it exists
-            if respond_to?('params_def') and not params_def.nil?
-              params_def.each do |param|
-                param.presentation = Presentation.new(param.presentation)
-                @bindings[param.id] = param
-              end
-            end
-
-            # Load fields config table if it exists
-            if respond_to?('fields_def') and not fields_def.nil?
-              fields_def.each do |field|
-                field.presentation = Presentation.new(field.presentation)
-                @bindings[field.id] = field
-              end
-            end
-
-            # Load variable definition table if it exists
-            if respond_to? ('variables_def') and not variables_def.nil?
-              variables_def.each do |vdef|
-                next if vdef.name.nil? or vdef.name.empty?
-                vdef.name.gsub!(/^\$V{(.+)}$/, '\1')
-                variable = Variable.new(vdef.name)
-                variable.java_class               = vdef.java_class         unless vdef.java_class.nil? or vdef.java_class.empty?
-                variable.calculation              = vdef.calculation        unless vdef.calculation.nil? or vdef.calculation.empty?
-                variable.reset_type               = vdef.reset              unless vdef.reset.nil? or vdef.reset.empty?
-                variable.variable_expression      = vdef.expression         unless vdef.expression.nil? or vdef.expression.empty?
-                variable.initial_value_expression = vdef.initial_expression unless vdef.initial_expression.nil? or vdef.initial_expression.empty?
-                if vdef.respond_to? :presentation and not vdef.presentation.nil? and not vdef.presentation.empty?
-                  variable.presentation = Presentation.new(vdef.presentation)
-                  @bindings["$V{#{vdef.name}}"] = variable
-                end
-                @report.variables[vdef.name] = variable
-              end
-            end
-
-          end
-
+          # TODO 2.0: review / fix @widget_factory - no longer needed?
           @widget_factory             = WidgetFactory.new(@bindings)
           @widget_factory.cb_editable = a_enable_cb_or_rb_edition
           @widget_factory.rb_editable = a_enable_cb_or_rb_edition
+        end
+
+        #
+        # Convert XLS to VRXML.
+        #
+        # @param to Local file URI.
+        #
+        def convert(to:)
+
+          read_all_tables()
+
+          @report = JasperReport.new(@report_name)
+
+          @binding = Vrxml::Binding.new(workbook: @workbook)
+          @binding.load()
+          @binding.map.each do | type, map |
+            # ... for all 'parameter/field/variable' ...
+            map.each do | name, value |
+              # ... fetch binding ...
+              binding = Vrxml::Binding.parse(type: type.to_s, value: value['Value'][:value] || "{\"__origin__\": \"auto\"}")
+              case type
+              when :parameters, :fields, :variables
+                binding[:type] ||= 'String'
+                binding[:java_class] = Vrxml::Binding.to_java_class(binding[:type])
+              end
+              # ... declare it ...
+              case type
+              when :parameters
+                @report.parameters[name] = Parameter.new(name: name, binding: binding)
+              when :fields
+                @report.fields[name] = Field.new(name: name, binding: binding)
+              when :variables
+                @report.variables[name] = Variable.new(name: name, binding: binding)
+              when :bands
+                Vrxml::Log.TODO(msg: "#{type} '#{name}' - ATTRIBUTES MAPPING")
+              else
+                raise "Don't know how to add '#{type}'!"
+              end              
+            end # map
+          end # @binding.map
+          @not_converted_expressions = {}
+          @relationship              = 'lines'         
+
 
           generate_styles()
 
           @px_width = @report.page_width - @report.left_margin - @report.right_margin
 
           parse_sheets()
-          if write_jrxml
-            File.write(report_name + '.jrxml', @report.to_xml)
+
+          #
+          # Raise an error if we still have expressions to convert.
+          #
+          if false == @not_converted_expressions.empty?
+            puts "---- ERROR ----".red
+            @not_converted_expressions.each do |key, value|
+              puts value[:jrxml]
+              ap key
+              puts value[:error]
+            end
+            raise "Unable to convert %d expression(s)" % [@not_converted_expressions.length]
           end
-        end
+          #
+          # WRITE
+          #
+          File.write(to, @report.to_xml)
+        end 
+
+        private
 
         def generate_styles
 
@@ -416,7 +453,11 @@ module Xls
         end
 
         def parse_sheets
+          @worksheet = nil
           @workbook.worksheets.each do |ws|
+            if 'Layout' != ws.sheet_name
+              next
+            end            
             @worksheet    = ws
             @raw_width    = 0
             @current_band = nil
@@ -426,6 +467,7 @@ module Xls
             end
             generate_bands()
           end
+          raise "'Layout' worksheet not found!" if nil == @worksheet
         end
 
         def generate_bands ()
@@ -466,62 +508,62 @@ module Xls
             @use_casper_bindings = a_row_tag.split(':')[1].strip == 'true'
           when /BG\d*:/
             @report.background ||= Background.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.background.bands << @current_band
             @band_type = a_row_tag
           when /TL\d*:/
             @report.title ||= Title.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.title.bands << @current_band
             @band_type = a_row_tag
           when /PH\d*:/
             @report.page_header ||= PageHeader.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.page_header.bands << @current_band
             @band_type = a_row_tag
           when /CH\d*:/
             @report.column_header ||= ColumnHeader.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.column_header.bands << @current_band
             @band_type = a_row_tag
           when /DT\d*/
             @report.detail ||= Detail.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.detail.bands << @current_band
             @band_type = a_row_tag
           when /CF\d*:/
             @report.column_footer ||= ColumnFooter.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.column_footer.bands << @current_band
             @band_type = a_row_tag
           when /PF\d*:/
             @report.page_footer ||= PageFooter.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.page_footer.bands << @current_band
             @band_type = a_row_tag
           when /LPF\d*:/
             @report.last_page_footer ||= LastPageFooter.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.last_page_footer.bands << @current_band
             @band_type = a_row_tag
           when /SU\d*:/
             @report.summary ||= Summary.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.summary.bands << @current_band
             @band_type = a_row_tag
           when /ND\d*:/
             @report.no_data ||= NoData.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.no_data.bands << @current_band
             @band_type = a_row_tag
           when /GH\d*:/
             @report.group ||= Group.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.group.group_header.bands << @current_band
             @band_type = a_row_tag
           when /GF\d*:/
             @report.group ||= Group.new
-            @current_band = Band.new
+            @current_band = Band.new(tag: a_row_tag)
             @report.group.group_footer.bands << @current_band
             @band_type = a_row_tag
           when /Orientation:.+/i
@@ -571,41 +613,29 @@ module Xls
             @band_type    = nil
           end
 
-          if @current_band != nil && @worksheet.comments != nil && @worksheet.comments.size > 0 && @worksheet.comments[0].comment_list != nil
-
-            @worksheet.comments[0].comment_list.each do |comment|
-              if comment.ref.col_range.begin == 0 && comment.ref.row_range.begin == a_row
-                comment.text.to_s.lines.each do |text|
-                  text.strip!
-                  next if text == ''
-                  tag, value =  text.split(':')
-                  next if value.nil? || tag.nil?
-                  tag.strip!
-                  value.strip!
-                  if tag == 'PE' or tag == 'printWhenExpression'
-                    if @current_band.print_when_expression.nil?
-                      @current_band.print_when_expression = value
-                      transform_expression(value) # to force declaration of paramters/fields/variables
-                    end
-                  elsif tag == 'lineParentIdField'
-                    @current_band.properties ||= Array.new
-                    @current_band.properties  << Property.new("epaper.casper.band.patch.op.add.attribute.name", value)
-                  elsif tag == 'AF' or tag == 'autoFloat'
-                    @current_band.auto_float = to_b(value)
-                  elsif tag == 'AS' or tag == 'autoStretch'
-                    @current_band.auto_stretch = to_b(value)
-                  elsif tag == 'splitType'
-                    @current_band.split_type = value
-                  elsif tag == 'stretchType'
-                    @current_band.stretch_type = value
-                  elsif tag == 'dataRowTypeAttrName'
-                    @current_band.properties ||= Array.new
-                    @current_band.properties  << Property.new("epaper.casper.band.patch.op.add.attribute.data_row_type.name", value)
-                  end
+          # band 'binding'
+          if nil != @current_band && nil != @binding.map[:bands] && nil != @binding.map[:bands][@current_band.tag]
+            obj = Vrxml::Binding.parse(type: :band, value:@binding.map[:bands][@current_band.tag]['Value'][:value])
+            obj.each do | k, v |
+              _attr = k.to_s.to_underscore
+              if @current_band.respond_to?(_attr.to_sym)
+                @current_band.send("#{_attr}=", v)
+              else
+                case k.to_s
+                # TODO: 2.0 - EDITABLE
+                # when 'lineParentIdField'
+                #   @current_band.properties ||= Array.new
+                #   @current_band.properties  << Property.new("epaper.casper.band.patch.op.add.attribute.name", value)
+                # when 'dataRowTypeAttrName'
+                #   @current_band.properties ||= Array.new
+                #   @current_band.properties  << Property.new("epaper.casper.band.patch.op.add.attribute.data_row_type.name", value)
+                when ''
+                else
+                  Vrxml::Binding.halt(msg: "Don't know how to set '%s%s".yellow % [ "#{k.to_s}".red, "' attribute / property!".yellow ])
                 end
               end
             end
-          end
+          end # band 'binding'
 
         end
 
@@ -631,7 +661,7 @@ module Xls
           col_idx         = 1
 
           while col_idx < row.size do
-
+                      
             col_span, row_span, cell_width, cell_height = measure_cell(a_row_idx, col_idx)
 
             if cell_width != nil
@@ -641,11 +671,7 @@ module Xls
                 next
               end
 
-              if @use_casper_bindings
-                field = create_field_with_casper_binding(row[col_idx])
-              else
-                field = create_field_legacy_mode(row[col_idx])
-              end
+              field = create_field_legacy_mode(row[col_idx])
               field.report_element.x = x_for_column(col_idx)
               field.report_element.y = y_for_row(a_row_idx)
               field.report_element.width  = cell_width
@@ -758,218 +784,198 @@ module Xls
           return false
         end
 
-        def create_field_with_casper_binding (a_cell)
-
-          fid = nil
-          expression = a_cell.value.to_s.strip
-          binding    = @bindings[expression]
-
-          unless binding.nil?
-            case binding.widget
-            when 'Combo'
-              rv = CasperCombo.new(self, expression)
-            when 'Date'
-              rv = CasperDate.new(self, expression)
-              parameter = Parameter.new('i18n_date_format', 'java.lang.String')
-              parameter.default_value_expression = '"dd/MM/yyyy"'
-              @report.parameters['i18n_date_format'] = parameter
-            when '',nil
-              # No widget fall trought
-            else
-              raise "Unknown widget type: '#{binding.widget}' on binding '#{binding.id}'"
-            end
-          end
-
-          unless rv
-            case expression
-            when /\A\$CB{.+}\z/
-              rv = CasperCheckbox.new(self, expression)
-
-            when /\A\$RB{.+}\z/
-              rv = CasperRadioButton.new(self, expression)
-
-            when /\A\$SE{.+}\z/
-              rv = CasperTextField.new(self, expression[4..-2])
-
-            when /\A\$P{([a-zA-Z0-9_\-#]+)}\z/,
-                  /\A\$F{([a-zA-Z0-9_\-#]+)}\z/,
-                  /\A\$V{([a-zA-Z0-9_\-#]+)}\z/
-              rv = CasperTextField.new(self, expression)
-
-            when /\A\$I{.+}\z/
-              rv = Image.new()
-
-              # copy cell alignment to image
-              style = @report.styles['style_' + (a_cell.style_index + 1).to_s]
-              rv.v_align = style.v_text_align
-              rv.h_align = style.h_text_align
-
-              unless expression.nil?
-                rv.image_expression = transform_expression(expression[3..expression.length-2])
-              end
-
-            when /.*\$[PFV]{.+}.*/
-              rv = CasperTextField.new(self, transform_expression(expression))
-            end
-
-          end
-
-          byebug if not rv.nil? and rv.respond_to?(:text_field_expression) and rv.text_field_expression.nil?
-
-          unless rv
-            rv = StaticText.new
-            rv.text = expression
-          end
-
-          return rv
-
-        end
-
         def create_field_legacy_mode (a_cell)
-
-          fid = nil
-          expression = a_cell.value.to_s
-          if ! (m = /\A\$P{([a-zA-Z0-9_\-#]+)}\z/.match expression.strip).nil?
-
-            # parameter
-            f_id                     = expression.strip
-            rv                       = @widget_factory.new_for_field(f_id, self)
-            rv.text_field_expression = expression
-
-            add_parameter(f_id, m[1])
-
-          elsif ! (m = /\A\$F{([a-zA-Z0-9_\-#]+)}\z/.match expression.strip).nil?
-
-            # field
-            f_id                     = expression.strip
-            rv                       = @widget_factory.new_for_field(f_id, self)
-            rv.text_field_expression = expression
-
-            add_field(f_id.strip, m[1])
-
-          elsif ! (m = /\A\$V{([a-zA-Z0-9_\-#]+)}\z/.match expression.strip).nil?
-
-            # variable
-            f_id                     = expression.strip
-            rv                       = @widget_factory.new_for_field(f_id, self)
-            rv.text_field_expression = expression
-
-            add_variable(f_id, m[1])
-
-          elsif ! (m = /\A\$C{(.+)}\z/.match expression.strip).nil?
-
-            # combo
-            combo = @widget_factory.new_combo(expression.strip)
-            rv    = combo[:widget]
-            f_id  = combo[:field]
-            f_nm  = f_id[3..f_id.length-2]
-            d_fld = nil != combo[:display_field] ? combo[:display_field] : "name"
-
-            if f_id.match(/^\$P{/)
-              add_parameter(f_id, f_nm)
-            elsif combo[:field].match(/^\$F{/)
-              add_field(f_id, f_nm)
-            elsif combo[:field].match(/^\$V{/)
-              add_variable(f_id, f_nm)
-            else
-              raise ArgumentError, "Don't know how to add '#{f_id}'!"
-            end
-
-            rv.text_field_expression = "TABLE_ITEM(\"#{combo[:id]}\";\"id\";#{f_id};\"#{d_fld}\")"
-
-          elsif expression.match(/^\$CB{/)
-
-            # checkbox
-            checkbox = @widget_factory.new_checkbox(expression.strip)
-            declare_expression_entities(expression.strip)
-            rv = checkbox[:widget]
-
-          elsif expression.match(/^\$RB{/)
-
-            # radio button
-            declare_expression_entities(expression.strip)
-            radio_button = @widget_factory.new_radio_button(expression.strip)
-            rv = radio_button[:widget]
-
-          elsif expression.match(/^\$DE{/)
-
-            declare_expression_entities(expression.strip)
-            de = expression.strip.split(',')
-            de[0] = de[0][4..de[0].length-1]
-            de[1] = de[1][0..de[1].length-2]
-
-            properties = [
-                            Property.new("epaper.casper.text.field.editable", "false"),
-                            Property.new("epaper.casper.text.field.editable.field_name", de[0][3..de[0].length-2])
-                          ]
-
-            rv = TextField.new(a_properties = properties, a_pattern = nil, a_pattern_expression = nil)
-            rv.text_field_expression = de[1]
-
-          elsif expression.match(/^\$SE{/)
-
-            declare_expression_entities(expression.strip)
-            expression = expression.strip
-            rv = TextField.new(a_properties = nil, a_pattern = nil, a_pattern_expression = nil)
-            rv.text_field_expression = expression[4..expression.length-2]
-
-          elsif expression.match(/^\$I{/)
-
-            rv = Image.new()
-
-            # copy cell alignment to image
-            style = @report.styles['style_' + (a_cell.style_index + 1).to_s]
-            rv.v_align = style.v_text_align
-            rv.h_align = style.h_text_align
-
-            unless expression.nil?
-              expression = expression.strip
-              rv.image_expression = transform_expression(expression[3..expression.length-2])
-            end
-
-          elsif expression.include? '$P{' or expression.include? '$F{' or expression.include? '$V{'
-
-            expression = transform_expression(expression)
-            rv = TextField.new(a_properties = nil, a_pattern = nil, a_pattern_expression = nil)
-            rv.text_field_expression = expression.strip
-
-          else
-
-            rv = StaticText.new
-            rv.text = expression
-
+          f_id = nil
+          rv  = nil
+          exp = a_cell.value.to_s
+          if nil != exp && exp.length > 0
+            exp = Vrxml::Expression.translate(uri: 'TODO', expression: exp, relationship: @relationship, nc: @not_converted_expressions)
           end
-
+          all = Vrxml::Expression.extract(expression: exp) || []
+          if all.count > 1
+            f_id = element[:value]
+            j_ks = @widget_factory.java_class(f_id)
+            # single param / field / variable
+            element = all[0]
+            case element[:type]
+            when :param
+              @report.add_parameter(id: f_id, name: f_id, java_class: j_ks)
+            when :field
+              @report.add_field(id: f_id, name: f_id, java_class: j_ks)
+            when :variable
+              @report.add_variable(id: f_id, name: f_id, java_class: j_ks)
+            else
+              raise "???"
+            end
+            puts "TODO: rv = @widget_factory.new_for_field(f_id, self)".red
+            require 'byebug' ; debugger
+          else
+            # multiple param / field / variable -> expression
+            rv = StaticText.new(text: exp)
+          end
+          
+          # TODO: implement
           if !f_id.nil? && rv.is_a?(TextField)
+            print "TODO: implement\n".red
+            require 'byebug' ; debugger
             if @widget_factory.java_class(f_id) == 'java.util.Date'
               rv.text_field_expression = "DateFormat.parse(#{rv.text_field_expression},\"yyyy-MM-dd\")"
               rv.pattern_expression = "$P{i18n_date_format}"
               rv.report_element.properties << Property.new('epaper.casper.text.field.patch.pattern', 'yyyy-MM-dd') unless rv.report_element.properties.nil?
-              parameter = Parameter.new('i18n_date_format', 'java.lang.String')
+              parameter = Parameter.new(name: 'i18n_date_format', java_class: 'java.lang.String')
               parameter.default_value_expression = '"dd/MM/yyyy"'
               @report.parameters['i18n_date_format'] = parameter
             end
           end
+
           return rv
+
+          # TODO: CLEANUP OLD
+
+          # fid = nil
+          # expression = a_cell.value.to_s
+
+          # if ! (m = /\A\$P{([a-zA-Z0-9_\-#]+)}\z/.match expression.strip).nil?
+
+          #   # parameter
+          #   f_id                     = expression.strip
+          #   rv                       = @widget_factory.new_for_field(f_id, self)
+          #   rv.text_field_expression = expression
+
+          #   @report.add_parameter(f_id, m[1])
+
+          # elsif ! (m = /\A\$F{([a-zA-Z0-9_\-#]+)}\z/.match expression.strip).nil?
+
+          #   # field
+          #   f_id                     = expression.strip
+          #   rv                       = @widget_factory.new_for_field(f_id, self)
+          #   rv.text_field_expression = expression
+
+          #   add_field(f_id.strip, m[1])
+
+          # elsif ! (m = /\A\$V{([a-zA-Z0-9_\-#]+)}\z/.match expression.strip).nil?
+
+          #   # variable
+          #   f_id                     = expression.strip
+          #   rv                       = @widget_factory.new_for_field(f_id, self)
+          #   rv.text_field_expression = expression
+
+          #   add_variable(f_id, m[1])
+
+          # elsif ! (m = /\A\$C{(.+)}\z/.match expression.strip).nil?
+
+          #   # combo
+          #   combo = @widget_factory.new_combo(expression.strip)
+          #   rv    = combo[:widget]
+          #   f_id  = combo[:field]
+          #   f_nm  = f_id[3..f_id.length-2]
+          #   d_fld = nil != combo[:display_field] ? combo[:display_field] : "name"
+
+          #   if f_id.match(/^\$P{/)
+          #     @report.add_parameter(f_id, f_nm)
+          #   elsif combo[:field].match(/^\$F{/)
+          #     add_field(f_id, f_nm)
+          #   elsif combo[:field].match(/^\$V{/)
+          #     add_variable(f_id, f_nm)
+          #   else
+          #     raise ArgumentError, "Don't know how to add '#{f_id}'!"
+          #   end
+
+          #   rv.text_field_expression = "TABLE_ITEM(\"#{combo[:id]}\";\"id\";#{f_id};\"#{d_fld}\")"
+
+          # elsif expression.match(/^\$CB{/)
+
+          #   # checkbox
+          #   checkbox = @widget_factory.new_checkbox(expression.strip)
+          #   declare_expression_entities(expression.strip)
+          #   rv = checkbox[:widget]
+
+          # elsif expression.match(/^\$RB{/)
+
+          #   # radio button
+          #   declare_expression_entities(expression.strip)
+          #   radio_button = @widget_factory.new_radio_button(expression.strip)
+          #   rv = radio_button[:widget]
+
+          # elsif expression.match(/^\$DE{/)
+
+          #   declare_expression_entities(expression.strip)
+          #   de = expression.strip.split(',')
+          #   de[0] = de[0][4..de[0].length-1]
+          #   de[1] = de[1][0..de[1].length-2]
+
+          #   properties = [
+          #                   Property.new("epaper.casper.text.field.editable", "false"),
+          #                   Property.new("epaper.casper.text.field.editable.field_name", de[0][3..de[0].length-2])
+          #                 ]
+
+          #   rv = TextField.new(a_properties = properties, a_pattern = nil, a_pattern_expression = nil)
+          #   rv.text_field_expression = de[1]
+
+          # elsif expression.match(/^\$SE{/)
+
+          #   declare_expression_entities(expression.strip)
+          #   expression = expression.strip
+          #   rv = TextField.new(a_properties = nil, a_pattern = nil, a_pattern_expression = nil)
+          #   rv.text_field_expression = expression[4..expression.length-2]
+
+          # elsif expression.match(/^\$I{/)
+
+          #   rv = Image.new()
+
+          #   # copy cell alignment to image
+          #   style = @report.styles['style_' + (a_cell.style_index + 1).to_s]
+          #   rv.v_align = style.v_text_align
+          #   rv.h_align = style.h_text_align
+
+          #   unless expression.nil?
+          #     expression = expression.strip
+          #     rv.image_expression = transform_expression(expression[3..expression.length-2])
+          #   end
+
+          # elsif expression.include? '$P{' or expression.include? '$F{' or expression.include? '$V{'
+
+          #   expression = transform_expression(expression)
+          #   rv = TextField.new(a_properties = nil, a_pattern = nil, a_pattern_expression = nil)
+          #   rv.text_field_expression = expression.strip
+
+          # else
+
+          #   rv = StaticText.new
+          #   rv.text = expression
+
+          # end
+
+          # if !f_id.nil? && rv.is_a?(TextField)
+          #   if @widget_factory.java_class(f_id) == 'java.util.Date'
+          #     rv.text_field_expression = "DateFormat.parse(#{rv.text_field_expression},\"yyyy-MM-dd\")"
+          #     rv.pattern_expression = "$P{i18n_date_format}"
+          #     rv.report_element.properties << Property.new('epaper.casper.text.field.patch.pattern', 'yyyy-MM-dd') unless rv.report_element.properties.nil?
+          #     parameter = Parameter.new('i18n_date_format', 'java.lang.String')
+          #     parameter.default_value_expression = '"dd/MM/yyyy"'
+          #     @report.parameters['i18n_date_format'] = parameter
+          #   end
+          # end
+          # return rv
         end
 
         def declare_expression_entities (a_expression)
 
-          a_expression.scan(/\$[A-Z]{[a-z_0-9\.\-#]+}/) { |v|
-            f_id = (/\A\$[PFV]{(.+)}\z/.match v).to_s
-            if false == f_id.nil?
-              f_nm = f_id[3..-2]
-              if f_id.match(/^\$P{/)
-                add_parameter(f_id, f_nm)
-              elsif f_id.match(/^\$F{/)
-                add_field(f_id, f_nm)
-              elsif f_id.match(/^\$V{/)
-                add_variable(f_id, f_nm)
-              else
-                raise ArgumentError, "Don't know how to add '#{f_id}'!"
-              end
+          all = Vrxml::Expression.extract(expression: a_expression) || []
+          all.each do | element |
+            f_id = element[:value]
+            j_ks = @widget_factory.java_class(f_id)
+            case element[:type]
+            when :param
+              @report.add_parameter(id: f_id, name: f_id, java_class: j_ks)
+            when :field
+              @report.add_field(id: f_id, name: f_id, java_class: j_ks)
+            when :variable
+              @report.add_variable(id: f_id, name: f_id, java_class: j_ks)
+            else
+              raise ArgumentError, "Don't know how to add '#{f_id}'!"
             end
-          }
+          end
           nil
         end
 
@@ -991,8 +997,7 @@ module Xls
                   value.strip!
 
                   if tag == 'PE' or tag == 'printWhenExpression'
-                    a_field.report_element.print_when_expression = value
-                    transform_expression(value) # to force declaration of paramters/fields/variables
+                    a_field.report_element.print_when_expression = transform_expression(expression: value) # to force declaration of paramters/fields/variables
                   elsif tag == 'AF' or tag == 'autoFloat'
                     a_field.report_element.position_type = to_b(value) ? 'Float' : 'FixRelativeToTop'
                   elsif tag == 'AS' or tag == 'autoStretch' and a_field.respond_to?(:is_stretch_with_overflow)
@@ -1006,21 +1011,21 @@ module Xls
                   elsif tag == 'ET' or tag == 'evaluationTime' and a_field.respond_to?(:evaluation_time)
                     a_field.evaluation_time = value.capitalize
                   elsif tag == 'DE' or tag == 'disabledExpression'
+                    _exp = transform_expression(expression: value)
                     if a_field.respond_to? :disabled_conditional
-                      a_field.disabled_conditional(value)
+                      a_field.disabled_conditional(_exp)
                     else
                       a_field.report_element.properties ||= Array.new
-                      a_field.report_element.properties << PropertyExpression.new('epaper.casper.text.field.disabled.if', value)
+                      a_field.report_element.properties << PropertyExpression.new('epaper.casper.text.field.disabled.if', _exp)
                     end
-                    transform_expression(value) # to force declaration of parameters/fields/variables
                   elsif tag == 'SE' or tag == 'styleExpression'
+                    _exp = transform_expression(expression: value) # to force declaration of parameters/fields/variables
                     if a_field.respond_to? :style_expression
-                      a_field.style_expression(value)
+                      a_field.style_expression(_exp)
                     else
                       a_field.report_element.properties ||= Array.new
-                      a_field.report_element.properties << PropertyExpression.new('epaper.casper.style.condition', value)
+                      a_field.report_element.properties << PropertyExpression.new('epaper.casper.style.condition', _exp)
                     end
-                    transform_expression(value) # to force declaration of parameters/fields/variables
                   elsif tag == 'RIC' or tag == 'reloadIfChanged'
                     if a_field.respond_to? :reload_if_changed
                       a_field.reload_if_changed(value)
@@ -1029,13 +1034,13 @@ module Xls
                       a_field.report_element.properties << Property.new('epaper.casper.text.field.reload.if_changed', value)
                     end
                   elsif tag == 'EE' or tag == 'editableExpression'
+                    _exp = transform_expression(expression: value) # to force declaration of parameters/fields/variables
                     if a_field.respond_to? :enabled_conditional
-                      a_field.enabled_conditional(value)
+                      a_field.enabled_conditional(_exp)
                     else
                       a_field.report_element.properties ||= Array.new
-                      a_field.report_element.properties << PropertyExpression.new('epaper.casper.text.field.editable.if', value)
+                      a_field.report_element.properties << PropertyExpression.new('epaper.casper.text.field.editable.if', _exp)
                     end
-                    transform_expression(value) # to force declaration of paramters/fields/variables
                   end
                 end
 
@@ -1044,62 +1049,30 @@ module Xls
           end
         end
 
-        def transform_expression (a_expression)
-          matches = a_expression.split(/(\$[PVF]{[a-zA-Z0-9\._]+})/)
-          if matches.nil?
-            return a_expression
-          end
-          terms = Array.new
-          matches.each do |match|
-            if match.length == 0
-              next
-            elsif match.start_with?('$P{')
-              terms << match
-              add_parameter(match, match[3..-2])
-            elsif match.start_with?('$F{')
-              terms << match
-              add_field(match, match[3..-2])
-            elsif match.start_with?('$V{')
-              terms << match
-              add_variable(match, match[3..-2])
-            else
-              terms << '"' + match + '"'
-            end
-          end
-          terms.join(' + ')
-        end
-
-        def add_parameter (a_id, a_name)
-          unless @report.parameters.has_key? a_name
-            parameter = Parameter.new(a_name, @widget_factory.java_class(a_id))
-            if @bindings.has_key? a_id
-              binding = @bindings[a_id]
-              if binding.respond_to? 'default' and binding.default != nil and binding.default.strip != ''
-                if binding.java_class == 'java.lang.String'
-                  parameter.default_value_expression = "\"#{binding.default.strip}\""
-                else
-                  parameter.default_value_expression = binding.default.strip
-                end
+        def transform_expression(expression:)
+          # translate expression
+          _exp = Vrxml::Expression.translate(uri: 'TODO', expression: expression, relationship: @relationship, nc: @not_converted_expressions, caller: caller_locations(1,1)[0].base_label)
+          # collect parameters/fields/variables in expression
+          all = Vrxml::Expression.extract(expression: _exp)
+          # add all parameters/fields/variables
+          if all.count > 0
+            all.each do | element |
+              f_id = element[:value]
+              j_ks = @widget_factory.java_class(f_id)
+              case element[:type]
+              when :param
+                @report.add_parameter(id: f_id, name: f_id, java_class: j_ks)
+              when :field
+                @report.add_field(id: f_id, name: f_id, java_class: j_ks)
+              when :variable
+                @report.add_variable(id: f_id, name: f_id, java_class: j_ks)
+              else
+                raise "???"
               end
             end
-            @report.parameters[a_name] = parameter
           end
-        end
-
-        def add_field (a_id, a_name)
-          unless @report.fields.has_key? a_name
-            field = Field.new(a_name, @widget_factory.java_class(a_id))
-            @report.fields[a_name] = field
-          end
-        end
-
-        def add_variable (a_id, a_name)
-          if "PAGE_NUMBER" != a_name
-            unless  @report.variables.has_key? a_name
-              variable = Variable.new(a_name, @widget_factory.java_class(a_id))
-              @report.variables[a_name] = variable
-            end
-          end
+          # done
+          return _exp
         end
 
         def get_column_width (a_worksheet, a_index)

@@ -19,40 +19,16 @@
 # along with xls2vrxml.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+require 'open3'
+
 module Xls
   module Loader
     module Jrxml
 
-      class StaticText
+      class Object
 
-        attr_accessor :report_element
-        attr_accessor :text
-        attr_accessor :style
-        attr_accessor :box
-        attr_accessor :attributes
+      end # class 'Object'
 
-        def initialize(text:)
-          @report_element = ReportElement.new
-          @text           = text
-          @box            = nil
-          @attributes     = nil
-        end
-
-        def to_xml (a_node)
-          Nokogiri::XML::Builder.with(a_node) do |xml|
-            xml.staticText(attributes)
-          end
-          @report_element.to_xml(a_node.children.last)
-          @box.to_xml(a_node.children.last) unless @box.nil?
-          Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
-            xml.text_ {
-              xml.cdata(@text)
-            }
-          end
-        end
-
-      end
-
-    end
-  end
-end
+    end # module 'Jrxml'
+  end # module 'Loader'
+end # module 'Xls'

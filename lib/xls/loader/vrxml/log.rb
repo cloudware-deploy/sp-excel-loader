@@ -19,40 +19,32 @@
 # along with xls2vrxml.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+require 'open3'
+
 module Xls
   module Loader
-    module Jrxml
+    module Vrxml
 
-      class StaticText
+      class Log
 
-        attr_accessor :report_element
-        attr_accessor :text
-        attr_accessor :style
-        attr_accessor :box
-        attr_accessor :attributes
+        SHOW_INFO       = 0x01
+        SHOW_STATS      = 0x02
+        SHOW_PROPERTIES = 0x04
+        TABLES          = 0x08
+        EXTRACTION      = 0x10
+        TRANSLATION     = 0x20
+        SHOW_V8_EXPR    = 0x7F
 
-        def initialize(text:)
-          @report_element = ReportElement.new
-          @text           = text
-          @box            = nil
-          @attributes     = nil
-        end
+        FLAGS           = SHOW_INFO
 
-        def to_xml (a_node)
-          Nokogiri::XML::Builder.with(a_node) do |xml|
-            xml.staticText(attributes)
-          end
-          @report_element.to_xml(a_node.children.last)
-          @box.to_xml(a_node.children.last) unless @box.nil?
-          Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
-            xml.text_ {
-              xml.cdata(@text)
-            }
-          end
-        end
+      public
 
+      def self.TODO(msg:, caller: caller_locations(1,1)[0].base_label)
+        puts "TODO 2.0: %s".purple % [ "#{msg}".white ]
       end
 
-    end
-  end
-end
+      end # class 'Log'
+
+    end # module 'Vrxml'
+  end # module 'Loader'
+end # module 'Xls'

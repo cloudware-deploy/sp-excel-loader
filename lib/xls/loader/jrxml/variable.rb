@@ -25,6 +25,11 @@ module Xls
 
       class Variable
 
+        @@expression = /^\$\.\$\$VARIABLES\[index\]\['[a-zA-Z0-9_#]+'\]/
+        def self.expr
+          @@expression
+        end
+        
         attr_accessor :name
         attr_accessor :java_class
         attr_accessor :calculation
@@ -32,16 +37,27 @@ module Xls
         attr_accessor :variable_expression
         attr_accessor :initial_value_expression
         attr_accessor :presentation
+        
+        attr_accessor :binding
 
-        def initialize (a_name, a_java_class = nil)
-          @name         = a_name
-          @java_class   = a_java_class
-          @java_class ||= 'java.lang.String'
-          @calculation  = 'System'
-          @reset_type   = nil
-          @variable_expression = nil
-          @initial_value_expression = nil
-          @presentation = nil
+        def initialize (name:, java_class: 'java.lang.String', binding: nil)
+          if ! Xls::Loader::Jrxml::Variable.expr().match name
+            raise "Invalid 'variable' name '#{name}'!"
+          end
+          @name                     = name
+          @binding                  = binding || { __origin__: 'auto' }
+          @java_class               = java_class || @binding[:java_class] || 'java.lang.String'
+          # TODO AG: @calculation default value?
+          @calculation              = 'System'
+          @calculation              = @binding[:calculation]        || nil       
+          @reset_type               = @binding[:reset]              || @binding[:reset_type]
+          @variable_expression      = @binding[:expression]         || @binding[:variable_expression]
+          @initial_value_expression = @binding[:initial_expression] || @binding[:initial_value_expression]
+          if nil != @binding[:presentation]
+            @presentation = Presentation.new(@binding[:presentation])
+          else
+            @presentation = nil 
+          end
         end
 
         def attributes
@@ -56,6 +72,9 @@ module Xls
 
         def to_xml (a_node)
           Nokogiri::XML::Builder.with(a_node) do |xml|
+            if nil != @binding[:'__origin__'] && 'auto' == @binding[:'__origin__']
+              xml.comment(" Warning: #{self.class.name} named #{@name} type was NOT declared, assuming #{@java_class} ")
+            end
             xml.variable(attributes) {
               unless @variable_expression.nil?
                 xml.variableExpression {

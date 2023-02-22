@@ -52,6 +52,9 @@ require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'p
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'property_expression'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'jrxml', 'extensions'))
 
+require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'vrxml', 'object'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'vrxml', 'log'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'vrxml', 'expression'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'vrxml', 'excel_to_vrxml'))
 
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'version'))
