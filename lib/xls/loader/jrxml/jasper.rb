@@ -45,7 +45,8 @@ module Xls
         attr_reader :fields
         attr_reader :variables
 
-        attr_accessor :styles
+        attr_reader :styles
+
         attr_accessor :style_set
         attr_accessor :builder
         attr_accessor :group
@@ -284,6 +285,16 @@ module Xls
           Vrxml::Log.TODO(msg: "#{__method__} called from #{caller} - NEEDS REVIEW")
 
           @report.variables[name] = Variable.new(name: name, java_class: java_class)
+        end
+
+        #
+        # Add a style.
+        #
+        # @param name  Unique name ( same as ID ).
+        # @param value Properties.
+        #
+        def add_style(name:, value:)
+          @styles[name] = value
         end
 
       end # class 'JasperReport'

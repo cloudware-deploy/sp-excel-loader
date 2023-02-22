@@ -171,7 +171,7 @@ module Xls
               when :variables
                 @report.variables[name] = Variable.new(name: name, binding: binding)
               when :bands
-                Vrxml::Log.TODO(msg: "#{type} '#{name}' - ATTRIBUTES MAPPING")
+                # nothing to do here
               else
                 raise "Don't know how to add '#{type}'!"
               end              
@@ -211,7 +211,7 @@ module Xls
 
           (0 .. @workbook.cell_xfs.size - 1).each do |style_index|
             style = xf_to_style(style_index)
-            @report.styles[style.name] = style
+            @report.add_style(name: style.name, value: style)
           end
 
         end
@@ -455,6 +455,7 @@ module Xls
         def parse_sheets
           @worksheet = nil
           @workbook.worksheets.each do |ws|
+            # TODO 2.0: multiple layout sheets in same workbook?
             if 'Layout' != ws.sheet_name
               next
             end            
