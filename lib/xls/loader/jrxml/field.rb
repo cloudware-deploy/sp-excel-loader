@@ -38,7 +38,7 @@ module Xls
 
         attr_accessor :binding
 
-        def initialize(name:, java_class: 'java.lang.String', binding: nil)
+        def initialize(name:, java_class: nil, binding: nil)
           if ! Field.expr().match name
             raise "Invalid 'field' name '#{name}'!"
           end

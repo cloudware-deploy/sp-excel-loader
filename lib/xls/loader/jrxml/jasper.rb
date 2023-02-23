@@ -110,10 +110,10 @@ module Xls
           @is_float_column_footer                 = true;
           @generator_version = Xls::Loader::VERSION.strip
           @fields["$['lines'][index]['data_row_type']"] = Field.new(name: "$['lines'][index]['data_row_type']", 
-            binding: JSON.parse({type: Vrxml::Binding.to_java_class('integer')}.to_json, symbolize_names: true)
+            binding: JSON.parse({type: 'integer', java_class: Vrxml::Binding.to_java_class('integer')}.to_json, symbolize_names: true)
           )
           @variables["$.$$VARIABLES[index]['ON_LAST_PAGE']"] = Variable.new(name: "$.$$VARIABLES[index]['ON_LAST_PAGE']", 
-            binding: JSON.parse({type: Vrxml::Binding.to_java_class('boolean')}.to_json, symbolize_names: true)
+            binding: JSON.parse({type: 'boolean', java_class: Vrxml::Binding.to_java_class('boolean')}.to_json, symbolize_names: true)
           )
           @extension = ReportExtension.new(@report_name)
         end

@@ -35,7 +35,8 @@ module Xls
             { key: :parameters, name: 'PARAMETERS_BINDING' }, 
             { key: :fields    , name: 'FIELDS_BINDING'     },
             { key: :variables , name: 'VARIABLES_BINDING'  },
-            { key: :bands     , name: 'BANDS_BINDING'      }
+            { key: :bands     , name: 'BANDS_BINDING'      },
+            { key: :other     , name: 'OTHER'              }
         ]
 
         #
@@ -270,7 +271,10 @@ module Xls
         # @param msg Message to display.
         # @param error Error to raise.
         #
-        def self.halt(msg:, error: nil)
+        def self.halt(msg:, file: nil, line: nil, error: nil)
+          if nil != file && nil != line
+            puts "@#{file}:#{line}".yellow
+          end
           puts "  ⌄".red
           puts "⨯ #{msg}".red
           puts "  ⌃ error".red

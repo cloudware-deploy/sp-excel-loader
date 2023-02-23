@@ -40,7 +40,15 @@ module Xls
       public
 
       def self.TODO(msg:, caller: caller_locations(1,1)[0].base_label)
-        puts "TODO 2.0: %s".purple % [ "#{msg}".white ]
+        puts "⌄".purple
+        puts " TODO 2.0: %s".purple % [ "#{msg}".white ]
+        puts "⌃".purple
+      end
+
+      def self.WHAT_IS(msg:, caller: caller_locations(1,1)[0].base_label)
+        puts "⌄".purple
+        puts " WHAT IS: %s".purple % [ "#{msg}".white ]
+        puts "⌃".purple
       end
 
       end # class 'Log'

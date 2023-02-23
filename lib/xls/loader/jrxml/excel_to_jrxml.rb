@@ -31,6 +31,8 @@ class String
   def to_underscore!
     gsub!(/(.)([A-Z])/,'\1_\2')
     downcase!
+    strip!
+    delete!(' ')
   end
 
   def to_underscore
@@ -172,8 +174,79 @@ module Xls
                 @report.variables[name] = Variable.new(name: name, binding: binding)
               when :bands
                 # nothing to do here
+              when :other
+                case name
+                # -
+                when 'REPORT'
+                  binding.each do | k, v |
+                    _attr = k.to_s.to_underscore
+                    next if nil == v
+                    if true == @report.respond_to?(_attr.to_sym)
+                      @report.send("#{_attr}=", v)
+                    else
+                      Vrxml::Log.WHAT_IS(msg: "#{name} => #{k.to_s} = #{v}")
+                    end
+                    case k.to_s
+                    when 'leftMargin'
+                      @px_width = @report.page_width - @report.left_margin - @report.right_margin
+                    when 'rightMargin'
+                      @px_width = @report.page_width - @report.left_margin - @report.right_margin
+                    else
+                      # nothing to do
+                    end
+                  end
+                # -
+                when 'GROUP'
+                  @report.group ||= Group.new
+                  binding.each do | k, v |
+                    _attr = k.to_s.to_underscore
+                    next if nil == v
+                    if true == @report.respond_to?(_attr.to_sym)
+                      @report.send("#{_attr}=", v)
+                    else
+                      case _attr
+                      when 'expression'
+                        @report.group.group_expression = v
+                        declare_expression_entities(@report.group.group_expression)
+                      else
+                        Vrxml::Log.WHAT_IS(msg: "#{name} => #{k.to_s} = #{v}")
+                      end
+                    end
+                  end                  
+                # -
+                when 'OTHER'
+                  binding.each do | k, v |
+                    _attr = k.to_s.to_underscore
+                    next if nil == v 
+                    if true == @report.respond_to?(_attr.to_sym)
+                      @report.send("#{_attr}=", v)
+                    else
+                      case k
+                      when :size
+                        @report.paper_size = v  
+                      when :vscale
+                        @v_scale = v
+                      when :query
+                        @report.query_string = v
+                      else
+                        Vrxml::Log.WHAT_IS(msg: "#{name} => #{k.to_s} = #{v}")
+                      end  
+                    end
+                    # update action(S)
+                    case k
+                    when :orientation
+                      @report.update_page_size()
+                    when :size
+                      @report.update_page_size()
+                    else
+                      # nothing to do here
+                    end
+                  end                
+                else
+                  Vrxml::Log.WHAT_IS(msg: "#{name} => #{value['Value'][:value]}")
+                end
               else
-                raise "Don't know how to add '#{type}'!"
+                Vrxml::Binding.halt(msg: " Don't know how to process '#{type}' binding!", file: __FILE__, line: __LINE__)
               end              
             end # map
           end # @binding.map
@@ -567,42 +640,42 @@ module Xls
             @current_band = Band.new(tag: a_row_tag)
             @report.group.group_footer.bands << @current_band
             @band_type = a_row_tag
-          when /Orientation:.+/i
-            @report.orientation = a_row_tag.split(':')[1].strip
-            @report.update_page_size()
-            @px_width = @report.page_width - @report.left_margin - @report.right_margin
-          when /Size:.+/i
-            @report.paper_size = a_row_tag.split(':')[1].strip
-            @report.update_page_size()
-            @px_width = @report.page_width - @report.left_margin - @report.right_margin
-          when /Report.isTitleStartNewPage:.+/i
-            @report.is_title_new_page =  a_row_tag.split(':')[1].strip == 'true'
-          when /Report.leftMargin:.+/i
-            @report.left_margin =  a_row_tag.split(':')[1].strip.to_i
-            @px_width = @report.page_width - @report.left_margin - @report.right_margin
-          when /Report.rightMargin:.+/i
-            @report.right_margin =  a_row_tag.split(':')[1].strip.to_i
-            @px_width = @report.page_width - @report.left_margin - @report.right_margin
-          when /Report.topMargin:.+/i
-            @report.top_margin =  a_row_tag.split(':')[1].strip.to_i
-          when /Report.bottomMargin:.+/i
-            @report.bottom_margin =  a_row_tag.split(':')[1].strip.to_i
-          when /VScale:.+/i
-            @v_scale = a_row_tag.split(':')[1].strip.to_f
-          when /Query:.+/i
-            @report.query_string = a_row_tag.split(':')[1].strip
+          # when /Orientation:.+/i
+          #   @report.orientation = a_row_tag.split(':')[1].strip
+          #   @report.update_page_size()
+          #   @px_width = @report.page_width - @report.left_margin - @report.right_margin
+          # when /Size:.+/i
+          #   @report.paper_size = a_row_tag.split(':')[1].strip
+          #   @report.update_page_size()
+          #   @px_width = @report.page_width - @report.left_margin - @report.right_margin
+          # when /Report.isTitleStartNewPage:.+/i
+          #   @report.is_title_new_page =  a_row_tag.split(':')[1].strip == 'true'
+          # when /Report.leftMargin:.+/i
+          #   @report.left_margin =  a_row_tag.split(':')[1].strip.to_i
+          #   @px_width = @report.page_width - @report.left_margin - @report.right_margin
+          # when /Report.rightMargin:.+/i
+          #   @report.right_margin =  a_row_tag.split(':')[1].strip.to_i
+          #   @px_width = @report.page_width - @report.left_margin - @report.right_margin
+          # when /Report.topMargin:.+/i
+          #   @report.top_margin =  a_row_tag.split(':')[1].strip.to_i
+          # when /Report.bottomMargin:.+/i
+          #   @report.bottom_margin =  a_row_tag.split(':')[1].strip.to_i
+          # when /VScale:.+/i
+          #   @v_scale = a_row_tag.split(':')[1].strip.to_f
+          # when /Query:.+/i
+          #   @report.query_string = a_row_tag.split(':')[1].strip
           when /Id:.+/i
             @report.id = a_row_tag.split(':')[1].strip
-          when /Group.expression:.+/i
-            @report.group ||= Group.new
-            @report.group.group_expression = a_row_tag.split(':')[1].strip
-            declare_expression_entities(@report.group.group_expression)
-          when /Group.isStartNewPage:.+/i
-            @report.group ||= Group.new
-            @report.group.is_start_new_page = a_row_tag.split(':')[1].strip == 'true'
-          when /Group.isReprintHeaderOnEachPage:.+/i
-            @report.group ||= Group.new
-            @report.group.is_reprint_header_on_each_page = a_row_tag.split(':')[1].strip == 'true'
+          # when /Group.expression:.+/i
+          #   @report.group ||= Group.new
+          #   @report.group.group_expression = a_row_tag.split(':')[1].strip
+          #   declare_expression_entities(@report.group.group_expression)
+          # when /Group.isStartNewPage:.+/i
+          #   @report.group ||= Group.new
+          #   @report.group.is_start_new_page = a_row_tag.split(':')[1].strip == 'true'
+          # when /Group.isReprintHeaderOnEachPage:.+/i
+          #   @report.group ||= Group.new
+          #   @report.group.is_reprint_header_on_each_page = a_row_tag.split(':')[1].strip == 'true'
           when /BasicExpressions:.+/i
             @widget_factory.basic_expressions = a_row_tag.split(':')[1].strip == 'true'
           when /Style:.+/i
