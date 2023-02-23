@@ -24,22 +24,6 @@ require 'set'
 require_relative 'parameter'
 require_relative 'field'
 require_relative 'variable'
-require_relative '../vrxml/binding'
-
-class String
-  
-  def to_underscore!
-    gsub!(/(.)([A-Z])/,'\1_\2')
-    downcase!
-    strip!
-    delete!(' ')
-  end
-
-  def to_underscore
-    dup.tap { |s| s.to_underscore! }
-  end
-
-end
 
 module Xls
   module Loader
@@ -152,17 +136,17 @@ module Xls
 
           @report = JasperReport.new(@report_name)
 
-          @binding = Vrxml::Binding.new(workbook: @workbook)
+          @binding = ::Xls::Vrxml::Binding.new(workbook: @workbook)
           @binding.load()
           @binding.map.each do | type, map |
             # ... for all 'parameter/field/variable' ...
             map.each do | name, value |
               # ... fetch binding ...
-              binding = Vrxml::Binding.parse(type: type.to_s, value: value['Value'][:value] || "{\"__origin__\": \"auto\"}")
+              binding = ::Xls::Vrxml::Binding.parse(type: type.to_s, value: value['Value'][:value] || "{\"__origin__\": \"auto\"}")
               case type
               when :parameters, :fields, :variables
                 binding[:type] ||= 'String'
-                binding[:java_class] = Vrxml::Binding.to_java_class(binding[:type])
+                binding[:java_class] = ::Xls::Vrxml::Binding.to_java_class(binding[:type])
               end
               # ... declare it ...
               case type
@@ -246,7 +230,7 @@ module Xls
                   Vrxml::Log.WHAT_IS(msg: "#{name} => #{value['Value'][:value]}")
                 end
               else
-                Vrxml::Binding.halt(msg: " Don't know how to process '#{type}' binding!", file: __FILE__, line: __LINE__)
+                ::Xls::Vrxml::Binding.halt(msg: " Don't know how to process '#{type}' binding!", file: __FILE__, line: __LINE__)
               end              
             end # map
           end # @binding.map
@@ -689,7 +673,7 @@ module Xls
 
           # band 'binding'
           if nil != @current_band && nil != @binding.map[:bands] && nil != @binding.map[:bands][@current_band.tag]
-            obj = Vrxml::Binding.parse(type: :band, value:@binding.map[:bands][@current_band.tag]['Value'][:value])
+            obj = ::Xls::Vrxml::Binding.parse(type: :band, value:@binding.map[:bands][@current_band.tag]['Value'][:value])
             obj.each do | k, v |
               _attr = k.to_s.to_underscore
               if @current_band.respond_to?(_attr.to_sym)
@@ -705,7 +689,7 @@ module Xls
                 #   @current_band.properties  << Property.new("epaper.casper.band.patch.op.add.attribute.data_row_type.name", value)
                 when ''
                 else
-                  Vrxml::Binding.halt(msg: "Don't know how to set '%s%s".yellow % [ "#{k.to_s}".red, "' attribute / property!".yellow ])
+                  ::Xls::Vrxml::Binding.halt(msg: "Don't know how to set '%s%s".yellow % [ "#{k.to_s}".red, "' attribute / property!".yellow ])
                 end
               end
             end

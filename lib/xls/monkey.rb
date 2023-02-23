@@ -18,47 +18,17 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with xls2vrxml.  If not, see <http://www.gnu.org/licenses/>.
 #
+class String
 
-require_relative '../jrxml/excel_to_jrxml'
-
-require_relative '../vrxml/binding'
-
-module Xls
-  module Loader
-    module Vrxml
-
-      class ExcelToVrxml < ::Xls::Loader::Jrxml::ExcelToJrxml          
-
-        private
-
-        @binding = nil
-
-        public
-
-          #
-          # Load binding.
-          #
-          # @return Binding Class.
-          #
-          def binding ()
-            if nil == @binding
-              @binding = Binding.new(workbook: @workbook)
-              @binding.load()
-            end
-            return @binding
-          end
-
-          #
-          # Save current workbook.
-          #
-          # @param uri Output XLSX.
-          #
-          def save(uri:)
-            @workbook.save(uri)
-          end
-
-      end # class ExcelToJrxml
-
-    end
+  def to_underscore!
+    gsub!(/(.)([A-Z])/,'\1_\2')
+    downcase!
+    strip!
+    delete!(' ')
   end
+
+  def to_underscore
+    dup.tap { |s| s.to_underscore! }
+  end
+
 end

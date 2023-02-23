@@ -22,37 +22,11 @@
 require 'open3'
 
 module Xls
-  module Loader
-    module Vrxml
+  module Vrxml
 
-      class Log
+    class Object
 
-        SHOW_INFO       = 0x01
-        SHOW_STATS      = 0x02
-        SHOW_PROPERTIES = 0x04
-        TABLES          = 0x08
-        EXTRACTION      = 0x10
-        TRANSLATION     = 0x20
-        SHOW_V8_EXPR    = 0x7F
+    end # class 'Object'
 
-        FLAGS           = SHOW_INFO
-
-      public
-
-      def self.TODO(msg:, caller: caller_locations(1,1)[0].base_label)
-        puts "⌄".purple
-        puts " TODO 2.0: %s".purple % [ "#{msg}".white ]
-        puts "⌃".purple
-      end
-
-      def self.WHAT_IS(msg:, caller: caller_locations(1,1)[0].base_label)
-        puts "⌄".purple
-        puts " WHAT IS: %s".purple % [ "#{msg}".white ]
-        puts "⌃".purple
-      end
-
-      end # class 'Log'
-
-    end # module 'Vrxml'
-  end # module 'Loader'
+  end # module 'Vrxml'
 end # module 'Xls'

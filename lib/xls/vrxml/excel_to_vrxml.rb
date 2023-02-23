@@ -19,16 +19,23 @@
 # along with xls2vrxml.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require 'open3'
+require_relative '../loader/jrxml/excel_to_jrxml'
 
 module Xls
-  module Loader
-    module Jrxml
+  module Vrxml
 
-      class Object
+    class ExcelToVrxml < ::Xls::Loader::Jrxml::ExcelToJrxml          
 
-      end # class 'Object'
+        #
+        # Save current workbook.
+        #
+        # @param uri Output XLSX.
+        #
+        def save(uri:)
+          @workbook.save(uri)
+        end
 
-    end # module 'Jrxml'
-  end # module 'Loader'
-end # module 'Xls'
+    end # class ExcelToJrxml
+
+  end # of module 'Vrxml'
+end # of module 'Xls'

@@ -110,12 +110,12 @@ module Xls
           @is_float_column_footer                 = true;
           @generator_version = Xls::Loader::VERSION.strip
           @fields["$['lines'][index]['data_row_type']"] = Field.new(name: "$['lines'][index]['data_row_type']", 
-            binding: JSON.parse({type: 'integer', java_class: Vrxml::Binding.to_java_class('integer')}.to_json, symbolize_names: true)
+            binding: JSON.parse({type: 'integer', java_class: ::Xls::Vrxml::Binding.to_java_class('integer')}.to_json, symbolize_names: true)
           )
           @variables["$.$$VARIABLES[index]['ON_LAST_PAGE']"] = Variable.new(name: "$.$$VARIABLES[index]['ON_LAST_PAGE']", 
-            binding: JSON.parse({type: 'boolean', java_class: Vrxml::Binding.to_java_class('boolean')}.to_json, symbolize_names: true)
+            binding: JSON.parse({type: 'boolean', java_class: ::Xls::Vrxml::Binding.to_java_class('boolean')}.to_json, symbolize_names: true)
           )
-          @extension = ReportExtension.new(@report_name)
+          @extension = nil # TODO 2.0: REMOVE ? ReportExtension.new(@report_name)
         end
 
         def update_page_size
@@ -165,51 +165,86 @@ module Xls
             }
           end
 
-          if not @extension.nil?
+          # TODO 2.0: remove ?
+          # if not @extension.nil?
 
-            if not @extension.properties.nil?
-              @extension.properties.each do |property|
-                property.to_xml(@builder.doc.children[0])
-              end
-            end
+          #   if not @extension.properties.nil?
+          #     @extension.properties.each do |property|
+          #       property.to_xml(@builder.doc.children[0])
+          #     end
+          #   end
 
-            if not @extension.styles.nil?
-              @extension.styles.each do |style|
-                style.to_xml(@builder.doc.children[0])
-              end
-            end
-          end
+          #   if not @extension.styles.nil?
+          #     @extension.styles.each do |style|
+          #       style.to_xml(@builder.doc.children[0])
+          #     end
+          #   end
+          # end
 
+          #
+          # WRITE STYLES
+          #
+          Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
+            xml.comment(" STYLES ")
+          end          
           @styles.each do |name, style|
             if @style_set.include? name
               style.to_xml(@builder.doc.children[0])
             end
           end
 
+          #
+          # WRITE PARAMETERS
+          #
+          Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
+            xml.comment(" PARAMETERS ")
+          end          
           @parameters.each do |name, parameter|
             parameter.to_xml(@builder.doc.children[0])
           end
 
-          unless @query_string.nil?
-            Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
-              xml.queryString {
-                xml.cdata(@query_string)
-              }
-            end
-          end
+          # TODO 2.0: remove?
+          # unless @query_string.nil?
+          #   Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
+          #     xml.queryString {
+          #       xml.cdata(@query_string)
+          #     }
+          #   end
+          # end
 
+          #
+          # WRITE FIELDS
+          #
+          Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
+            xml.comment(" FIELDS ")
+          end          
           @fields.each do |name, field|
             field.to_xml(@builder.doc.children[0])
           end
 
+          #
+          # WRITE VARIABLES
+          #
+          Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
+            xml.comment(" VARIABLES ")
+          end          
           @variables.each do |name, variable|
             next if ['PAGE_NUMBER', 'MASTER_CURRENT_PAGE', 'MASTER_TOTAL_PAGES', 
                       'COLUMN_NUMBER', 'REPORT_COUNT', 'PAGE_COUNT', 'COLUMN_COUNT'].include? name
             variable.to_xml(@builder.doc.children[0])
           end
 
+          #
+          # WRITE LAYOUT
+          #
+          Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
+            xml.comment(" LAYOUT ")
+          end
+
+          # group
           @group.to_xml(@builder.doc.children[0]) unless @group.nil?
 
+          # other
           @background.to_xml(@builder.doc.children[0])       unless @background.nil?
           @title.to_xml(@builder.doc.children[0])            unless @title.nil?
           @page_header.to_xml(@builder.doc.children[0])      unless @page_header.nil?
@@ -221,6 +256,9 @@ module Xls
           @summary.to_xml(@builder.doc.children[0])          unless @summary.nil?
           @no_data.to_xml(@builder.doc.children[0])          unless @no_data.nil?
 
+          #
+          # finalize
+          #
           @builder.to_xml(indent:2)
         end
 
