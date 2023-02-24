@@ -37,6 +37,7 @@ module Xls
         attr_accessor :bottom_margin
         attr_accessor :report_name
         attr_accessor :is_title_new_page
+        attr_accessor :data_source_type
 
         #
         # Report class instance data
@@ -112,10 +113,14 @@ module Xls
           @fields["$['lines'][index]['data_row_type']"] = Field.new(name: "$['lines'][index]['data_row_type']", 
             binding: JSON.parse({type: 'integer', java_class: ::Xls::Vrxml::Binding.to_java_class('integer')}.to_json, symbolize_names: true)
           )
-          @variables["$.$$VARIABLES[index]['ON_LAST_PAGE']"] = Variable.new(name: "$.$$VARIABLES[index]['ON_LAST_PAGE']", 
-            binding: JSON.parse({type: 'boolean', java_class: ::Xls::Vrxml::Binding.to_java_class('boolean')}.to_json, symbolize_names: true)
-          )
+          Variable.known_variables.each do | definition, |
+            @variables["$.$$VARIABLES[index]['#{definition[:name]}']"] = Variable.new(name: "$.$$VARIABLES[index]['#{definition[:name]}']", 
+              binding: JSON.parse(definition.to_json, symbolize_names: true)
+            )
+          end
           @extension = nil # TODO 2.0: REMOVE ? ReportExtension.new(@report_name)
+          #
+          @data_source_type = 'legacy'
         end
 
         def update_page_size
@@ -160,7 +165,9 @@ module Xls
                               'bottomMargin'       => @bottom_margin,
                               'isTitleNewPage'     => @is_title_new_page,
                               'isSummaryWithPageHeaderAndFooter' => @is_summary_with_page_header_and_footer,
-                              'isFloatColumnFooter'              => @is_float_column_footer) {
+                              'isFloatColumnFooter'              => @is_float_column_footer,
+                              'dataSourceType' => @data_source_type
+            ) {
               xml.comment('created with xls2vexml ' + @generator_version)
             }
           end

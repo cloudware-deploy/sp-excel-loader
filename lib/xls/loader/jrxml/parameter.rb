@@ -47,7 +47,7 @@ module Xls
           @binding                  = binding || { __origin__: 'auto' }
           @java_class               = java_class || @binding[:java_class] || 'java.lang.String'
           @description              = @binding[:description] || nil       
-          @default_value_expression = @binding[:default]     || @binding[:default_value_expression]
+          @default_value_expression = @binding[:default] || @binding[:default_value_expression] || name
         end
 
         def attributes

@@ -29,6 +29,30 @@ module Xls
         def self.expr
           @@expression
         end
+        @@capture = /^\$\.\$\$VARIABLES\[index\]\['([a-zA-Z0-9_#]+)'\]/
+
+        @@known_variables = [
+          { name: 'LOCALE'	    	        , java_class: 'java.lang.String' , calculation: 'System' },
+          { name: 'RENDERER_ID'	          , java_class: 'java.lang.String' , calculation: 'System' },
+          { name: 'CONTINUOUS_PAGE_NUMBER', java_class: 'java.lang.Integer', calculation: 'System' },
+          { name: 'PAGE_NUMBER'	          , java_class: 'java.lang.Integer', calculation: 'System' },
+          { name: 'ON_ALL_ROWS_PROCESSED' , java_class: 'java.lang.Boolean', calculation: 'System' },
+          { name: 'ON_LAST_COPY'		      , java_class: 'java.lang.Boolean', calculation: 'System' },
+          { name: 'ON_LAST_PAGE'		      , java_class: 'java.lang.Boolean', calculation: 'System' },
+          { name: 'ON_LAST_DOCUMENT'	    , java_class: 'java.lang.Boolean', calculation: 'System' },
+          { name: 'SIGNATURE_VISIBLE'	    , java_class: 'java.lang.Boolean', calculation: 'System' },
+          { name: 'NUMBER_OF_COPIES'	    , java_class: 'java.lang.Integer', calculation: 'System' },
+          { name: 'COPY_NUMBER'		        , java_class: 'java.lang.Integer', calculation: 'System' },
+          { name: 'NUMBER_OF_DOCUMENTS'   , java_class: 'java.lang.Integer', calculation: 'System' },
+          { name: 'DOCUMENT_NUMBER'	      , java_class: 'java.lang.Integer', calculation: 'System' },
+          #
+          { name: 'PAGE_COUNT'	          , java_class: 'java.lang.Integer', calculation: 'System' },
+          { name: 'REPORT_COUNT'		      , java_class: 'java.lang.Integer', calculation: 'System' },
+          { name: 'REMAINING_COUNT'       , java_class: 'java.lang.Integer', calculation: 'System' },
+        ]
+        def self.known_variables
+          @@known_variables
+        end
         
         attr_accessor :name
         attr_accessor :java_class
@@ -47,9 +71,7 @@ module Xls
           @name                     = name
           @binding                  = binding || { __origin__: 'auto' }
           @java_class               = java_class || @binding[:java_class] || 'java.lang.String'
-          # TODO AG: @calculation default value?
-          @calculation              = 'System'
-          @calculation              = @binding[:calculation]        || nil       
+          @calculation              = @binding[:calculation]        || 'System'
           @reset_type               = @binding[:reset]              || @binding[:reset_type]
           @variable_expression      = @binding[:expression]         || @binding[:variable_expression]
           @initial_value_expression = @binding[:initial_expression] || @binding[:initial_value_expression]
@@ -62,7 +84,7 @@ module Xls
 
         def attributes
           rv = Hash.new
-          rv['name']        = @name
+          rv['name']        = @name.match(@@capture)[1]
           rv['class']       = @java_class
           rv['calculation'] = @calculation
           rv['resetType']   = @reset_type unless @reset_type.nil? or @reset_type == 'None'

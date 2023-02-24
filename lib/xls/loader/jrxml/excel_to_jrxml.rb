@@ -153,7 +153,11 @@ module Xls
               when :parameters
                 @report.parameters[name] = Parameter.new(name: name, binding: binding)
               when :fields
-                @report.fields[name] = Field.new(name: name, binding: binding)
+                if name.start_with?('$')
+                  @report.fields[name] = Field.new(name: name, binding: binding)
+                else
+                  puts "TODO: ${name}"
+                end
               when :variables
                 @report.variables[name] = Variable.new(name: name, binding: binding)
               when :bands
@@ -255,12 +259,69 @@ module Xls
               puts value[:error]
             end
             raise "Unable to convert %d expression(s)" % [@not_converted_expressions.length]
-          end
+          end                    
+          #
+          # TABLES
+          #
+          # TODO 2.0
+          @@xmlns = "http://jasperreports.sourceforge.net/jasperreports"
+          document = Nokogiri::XML(@report.to_xml)
+          convert_to_tables(xml: document, relationship: @relationship)
           #
           # WRITE
           #
-          File.write(to, @report.to_xml)
+          File.write(to, document.to_xml( :indent => 2, :encoding => Encoding::UTF_8.to_s, :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML ))
         end 
+
+        #
+        # Convert to tables
+        #
+        # @param document
+        # @param relationship
+        #
+        def convert_to_tables (xml:, relationship:)
+          table 				= nil
+          jasper_report = xml.xpath('x:jasperReport', 'x' => @@xmlns)
+          detail_band   = xml.xpath('x:jasperReport/x:detail', 'x' => @@xmlns)
+          column_header = xml.xpath('x:jasperReport/x:columnHeader', 'x' => @@xmlns)
+          column_footer = xml.xpath('x:jasperReport/x:columnFooter', 'x' => @@xmlns)
+          group				  = xml.xpath('x:jasperReport/x:group', 'x' => @@xmlns)      
+
+          puts "--- --- --- TABLES --- --- --- "
+          
+          # puts " - detail_band = #{detail_band.count}, column_header = #{column_header.count}, column_footer = #{column_footer.count}..."
+          if 0 == detail_band.count && 0 == column_header.count && 0 == column_footer.count && 0 == group.count
+            puts "No tables...".white
+          else
+            puts "Patching tables...".white
+            # patch table
+            jasper_report[0]['dataSourceType'] = 'legacy'
+
+            if nil == table
+              table = Nokogiri::XML::Node.new("table", xml)
+              table['relationship'] = relationship
+              if group.count > 0
+                group[0].after(table)
+              elsif column_header.count > 0
+                column_header[0].after(table)
+              elsif column_footer.count > 0
+                column_footer[0].after(table)
+              else # detail_band.count
+                detail_band[0].after(table)
+              end
+            end
+            # 're-parenting' nodes
+            puts '  Re-parenting nodes...'
+            [column_header, detail_band, column_footer, group].each do | a |
+              a.each do | node |
+                # if @@k_log_level_tables == ( @log_level & @@k_log_level_tables )
+                  puts "    #{node.name}"
+                # end
+                node.parent = table
+              end
+            end
+          end # if
+        end # convert_to_tables
 
         private
 
@@ -851,6 +912,8 @@ module Xls
           end
           all = Vrxml::Expression.extract(expression: exp) || []
           if all.count > 1
+            ap "unfinished! WTF??"
+            require 'byebug' ; debugger
             f_id = element[:value]
             j_ks = @widget_factory.java_class(f_id)
             # single param / field / variable
@@ -867,9 +930,30 @@ module Xls
             end
             puts "TODO: rv = @widget_factory.new_for_field(f_id, self)".red
             require 'byebug' ; debugger
+          elsif all.count > 0
+            # TODO: 2.0            
+            rv = TextField.new(a_properties = nil, a_pattern = nil, a_pattern_expression = nil)            
+            rv.text_field_expression = exp.strip
+
+            case all[0][:type]
+            when :param
+              if @report.parameters[all[0][:value]] && @report.parameters[all[0][:value]].binding
+                rv.pattern = @report.parameters[all[0][:value]].binding[:presentation]
+              end
+            when :field
+              if @report.fields[all[0][:value]] && @report.fields[all[0][:value]].binding
+                rv.pattern = @report.fields[all[0][:value]].binding[:presentation]
+              end
+            when :variable
+              if @report.variables[all[0][:value]].presentation
+                rv.pattern = @report.variables[all[0][:value]].presentation.format
+              end
+            else
+                raise "???"
+            end
           else
-            # multiple param / field / variable -> expression
-            rv = StaticText.new(text: exp)
+            rv = TextField.new(a_properties = nil, a_pattern = nil, a_pattern_expression = nil)            
+            rv.text_field_expression = exp.strip
           end
           
           # TODO: implement
