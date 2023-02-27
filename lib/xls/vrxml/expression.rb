@@ -29,9 +29,9 @@ module Xls
     class Expression < Object
 
       PFV_EXPR = {
-        'param': Xls::Loader::Jrxml::Parameter.expr,
-        'field': Xls::Loader::Jrxml::Field.expr,
-        'variable': Xls::Loader::Jrxml::Variable.expr
+        'param': Parameter.expr,
+        'field': Field.expr,
+        'variable': Variable.expr
       }
 
       #

@@ -20,39 +20,37 @@
 #
 
 module Xls
-  module Loader
-    module Jrxml
+  module Vrxml
 
-      class StaticText
+    class StaticText
 
-        attr_accessor :report_element
-        attr_accessor :text
-        attr_accessor :style
-        attr_accessor :box
-        attr_accessor :attributes
+      attr_accessor :report_element
+      attr_accessor :text
+      attr_accessor :style
+      attr_accessor :box
+      attr_accessor :attributes
 
-        def initialize(text:)
-          @report_element = ReportElement.new
-          @text           = text
-          @box            = nil
-          @attributes     = nil
-        end
-
-        def to_xml (a_node)
-          Nokogiri::XML::Builder.with(a_node) do |xml|
-            xml.staticText(attributes)
-          end
-          @report_element.to_xml(a_node.children.last)
-          @box.to_xml(a_node.children.last) unless @box.nil?
-          Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
-            xml.text_ {
-              xml.cdata(@text)
-            }
-          end
-        end
-
+      def initialize(text:)
+        @report_element = ReportElement.new
+        @text           = text
+        @box            = nil
+        @attributes     = nil
       end
 
-    end
-  end
-end
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.staticText(attributes)
+        end
+        @report_element.to_xml(a_node.children.last)
+        @box.to_xml(a_node.children.last) unless @box.nil?
+        Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
+          xml.text_ {
+            xml.cdata(@text)
+          }
+        end
+      end
+
+    end # class 'StaticText'
+
+  end # of module 'Vrxml'
+end # of module 'Xls'

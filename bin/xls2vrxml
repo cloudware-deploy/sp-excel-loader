@@ -26,7 +26,7 @@ require 'bundler/setup'
 require 'awesome_print'
 require 'optparse'
 require 'xls/loader'
-require 'xls/loader/jrxml/jasper'
+require 'xls/vrxml/jasper'
 
 $args = {
   out_dir: '.',

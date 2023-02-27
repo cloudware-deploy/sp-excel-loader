@@ -20,32 +20,29 @@
 #
 
 module Xls
-  module Loader
-    module Jrxml
+  module Vrxml
 
-      class Property
+    class PropertyExpression < Property
 
-        attr_accessor :name
-        attr_accessor :value
+      attr_accessor :name
+      attr_accessor :value
 
-        def initialize (a_name, a_value)
-          @name  = a_name
-          @value = a_value
-        end
-
-        def attributes
-          { name: @name, value:@value }
-        end
-
-        def to_xml(a_node)
-          Nokogiri::XML::Builder.with(a_node) do |xml|
-            xml.property(attributes)
-          end
-        end
-
+      def initialize (a_name, a_value)
+        @name  = a_name
+        @value = a_value
       end
 
-    end
+      def attributes
+        { name: @name }
+      end
 
-  end
-end
+      def to_xml(a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.propertyExpression(attributes) { xml.cdata @value }
+        end
+      end
+
+    end # class 'PropertyExpression'
+
+  end # of module 'Vrxml'
+end # of module 'Xls'
