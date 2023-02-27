@@ -131,7 +131,6 @@ module Xls
         @binding.load()
         @binding.map.each do | type, map |
           # ... for all 'parameter/field/variable' ...
-          ap map
           map.each do | name, value |
             # ... fetch binding ...
             binding = ::Xls::Vrxml::Binding.parse(type: type.to_s, value: value['Value'][:value] || "{\"__origin__\": \"auto\"}")
