@@ -33,15 +33,22 @@ module Xls
         attr_accessor :pattern_expression
         attr_reader   :report_element
 
-        def initialize (a_properties, a_pattern = nil, a_pattern_expression = nil)
+        def initialize (binding:)
           super(text: nil)
           @text_field_expression     = nil
           @is_blank_when_null        = nil
           @is_stretch_with_overflow  = false
           @evaluation_time           = nil
-          @pattern                   = a_pattern
-          @pattern_expression        = a_pattern_expression
-          @report_element.properties = a_properties
+          if nil != binding
+            @pattern                   = binding[:pattern]
+            @pattern_expression        = binding[:pattern_expression]
+            @report_element.properties = binding[:properties]
+            @report_element.print_when_expression = binding[:printWhenExpression]
+          else
+            @pattern                   = nil
+            @pattern_expression        = nil
+            @report_element.properties = nil
+          end
         end
 
         def attributes

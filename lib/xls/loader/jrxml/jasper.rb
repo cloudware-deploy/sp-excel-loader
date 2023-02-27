@@ -45,6 +45,7 @@ module Xls
         attr_reader :parameters
         attr_reader :fields
         attr_reader :variables
+        attr_reader :named_cells
 
         attr_reader :styles
 
@@ -93,6 +94,8 @@ module Xls
           @variables       = Hash.new
           @styles          = Hash.new
           @style_set       = Set.new
+
+          @named_cells    = Hash.new
 
           # defaults for jasper report attributes
           @orientation       = 'Portrait'

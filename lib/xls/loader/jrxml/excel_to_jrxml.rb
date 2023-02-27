@@ -162,6 +162,8 @@ module Xls
                 @report.variables[name] = Variable.new(name: name, binding: binding)
               when :bands
                 # nothing to do here
+              when :named_cells
+                @report.named_cells[name] = binding
               when :other
                 case name
                 # -
@@ -200,7 +202,7 @@ module Xls
                         Vrxml::Log.WHAT_IS(msg: "#{name} => #{k.to_s} = #{v}")
                       end
                     end
-                  end                  
+                  end
                 # -
                 when 'OTHER'
                   binding.each do | k, v |
@@ -238,6 +240,11 @@ module Xls
               end              
             end # map
           end # @binding.map
+
+          # load named cells
+          @name2ref, @ref2name = ::Xls::Vrxml::Binding.get_named_cells_map(sheet: ::Xls::Vrxml::Binding.get_sheet(named: 'Layout', at: @workbook), at: @workbook)
+          
+
           @not_converted_expressions = {}
           @relationship              = 'lines'         
 
@@ -906,6 +913,7 @@ module Xls
         def create_field_legacy_mode (a_cell)
           f_id = nil
           rv  = nil
+          binding = nil
           exp = a_cell.value.to_s
           if nil != exp && exp.length > 0
             exp = Vrxml::Expression.translate(uri: 'TODO', expression: exp, relationship: @relationship, nc: @not_converted_expressions)
@@ -932,27 +940,38 @@ module Xls
             require 'byebug' ; debugger
           elsif all.count > 0
             # TODO: 2.0            
-            rv = TextField.new(a_properties = nil, a_pattern = nil, a_pattern_expression = nil)            
-            rv.text_field_expression = exp.strip
-
+            binding = nil
+            pattern = nil
             case all[0][:type]
             when :param
-              if @report.parameters[all[0][:value]] && @report.parameters[all[0][:value]].binding
-                rv.pattern = @report.parameters[all[0][:value]].binding[:presentation]
+              binding = @report.parameters[all[0][:value]] ? @report.parameters[all[0][:value]].binding : nil
+              if nil != binding
+                pattern = binding[:presentation]
               end
             when :field
-              if @report.fields[all[0][:value]] && @report.fields[all[0][:value]].binding
-                rv.pattern = @report.fields[all[0][:value]].binding[:presentation]
+              binding = @report.fields[all[0][:value]] ? @report.fields[all[0][:value]].binding : nil
+              if nil != binding
+                pattern = binding[:presentation]
               end
             when :variable
-              if @report.variables[all[0][:value]].presentation
-                rv.pattern = @report.variables[all[0][:value]].presentation.format
+              binding = @report.variables[all[0][:value]] ? @report.variables[all[0][:value]].binding : nil
+              if nil != binding
+                pattern = binding[:presentation]
               end
             else
                 raise "???"
             end
+            rv = TextField.new(binding: binding)
+            rv.text_field_expression = exp.strip
+            rv.pattern = pattern
+            rv.report_element
           else
-            rv = TextField.new(a_properties = nil, a_pattern = nil, a_pattern_expression = nil)            
+            # basic text, no parameter(s)/field(s)/variable(s) or expression(s)
+            ref = RubyXL::Reference.ind2ref(a_cell.row, a_cell.column)
+            if @ref2name.include?(ref) && @report.named_cells.include?(@ref2name[ref])
+              binding = @report.named_cells[@ref2name[ref]]
+            end
+            rv = TextField.new(binding: binding)
             rv.text_field_expression = exp.strip
           end
           

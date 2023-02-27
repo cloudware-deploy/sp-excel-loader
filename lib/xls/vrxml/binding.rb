@@ -31,11 +31,12 @@ module Xls
       attr_accessor :map
 
       ALL = [ 
-          { key: :parameters, name: 'PARAMETERS_BINDING' }, 
-          { key: :fields    , name: 'FIELDS_BINDING'     },
-          { key: :variables , name: 'VARIABLES_BINDING'  },
-          { key: :bands     , name: 'BANDS_BINDING'      },
-          { key: :other     , name: 'OTHER'              }
+          { key: :parameters , name: 'PARAMETERS_BINDING'  }, 
+          { key: :fields     , name: 'FIELDS_BINDING'      },
+          { key: :variables  , name: 'VARIABLES_BINDING'   },
+          { key: :bands      , name: 'BANDS_BINDING'       },
+          { key: :named_cells, name: 'NAMED_CELLS_BINDING' },
+          { key: :other      , name: 'OTHER'               }
       ]
 
       #
@@ -160,7 +161,8 @@ module Xls
       # TODO: this duplicates read_named_cells
       #
       def self.get_named_cells_map(sheet:, at:)
-        map = Hash.new
+        map   = Hash.new
+        r_map = Hash.new
         ref_regexp = sheet.sheet_name + '!\$*([A-Z]+)\$*(\d+)'
         at.defined_names.each do |dn|
           next unless dn.local_sheet_id.nil?
@@ -171,9 +173,10 @@ module Xls
               raise "**** Fatal error:\n     duplicate cellname for #{matched_name}: #{@map[matched_name]} and #{dn.name}"
             end
             map[dn.name] = matched_name
+            r_map[matched_name] = dn.name
           end
         end
-        map
+        return map, r_map
       end
 
       #
