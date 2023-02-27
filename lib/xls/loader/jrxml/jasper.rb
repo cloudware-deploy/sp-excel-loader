@@ -59,7 +59,6 @@ module Xls
         attr_accessor :orientation
         attr_accessor :paper_size
         attr_accessor :properties
-        attr_reader   :extension
 
         # band containers
         attr_accessor :detail
@@ -121,7 +120,6 @@ module Xls
               binding: JSON.parse(definition.to_json, symbolize_names: true)
             )
           end
-          @extension = nil # TODO 2.0: REMOVE ? ReportExtension.new(@report_name)
           #
           @data_source_type = 'legacy'
         end
@@ -140,17 +138,7 @@ module Xls
             @page_width  = 595
             @page_height = 842
           end
-        end
-
-        def update_extension_style (a_name, a_cell)
-          @extension.styles.delete_if {|style| style.name == a_name}
-          style              = @styles.delete("style_#{a_cell.style_index+1}")
-          style.name         = a_name
-          style.v_text_align = nil
-          style.h_text_align = nil
-          @styles[a_name] = style
-          @style_set.add(a_name)
-        end
+        end 
 
         def to_xml
           @builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |xml|
@@ -175,22 +163,7 @@ module Xls
             }
           end
 
-          # TODO 2.0: remove ?
-          # if not @extension.nil?
-
-          #   if not @extension.properties.nil?
-          #     @extension.properties.each do |property|
-          #       property.to_xml(@builder.doc.children[0])
-          #     end
-          #   end
-
-          #   if not @extension.styles.nil?
-          #     @extension.styles.each do |style|
-          #       style.to_xml(@builder.doc.children[0])
-          #     end
-          #   end
-          # end
-
+       
           #
           # WRITE STYLES
           #

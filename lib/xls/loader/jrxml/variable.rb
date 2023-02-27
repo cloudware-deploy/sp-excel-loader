@@ -60,7 +60,7 @@ module Xls
         attr_accessor :reset_type
         attr_accessor :variable_expression
         attr_accessor :initial_value_expression
-        attr_accessor :presentation
+        attr_accessor :presentation # TODO 2.0 : review usage
         
         attr_accessor :binding
 
@@ -75,11 +75,7 @@ module Xls
           @reset_type               = @binding[:reset]              || @binding[:reset_type]
           @variable_expression      = @binding[:expression]         || @binding[:variable_expression]
           @initial_value_expression = @binding[:initial_expression] || @binding[:initial_value_expression]
-          if nil != @binding[:presentation]
-            @presentation = Presentation.new(@binding[:presentation])
-          else
-            @presentation = nil 
-          end
+          @presentation             = @binding[:presentation]
         end
 
         def attributes
