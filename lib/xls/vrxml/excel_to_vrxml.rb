@@ -131,6 +131,7 @@ module Xls
         @binding.load()
         @binding.map.each do | type, map |
           # ... for all 'parameter/field/variable' ...
+          ap map
           map.each do | name, value |
             # ... fetch binding ...
             binding = ::Xls::Vrxml::Binding.parse(type: type.to_s, value: value['Value'][:value] || "{\"__origin__\": \"auto\"}")
@@ -692,42 +693,8 @@ module Xls
           @current_band = Band.new(tag: a_row_tag)
           @report.group.group_footer.bands << @current_band
           @band_type = a_row_tag
-        # when /Orientation:.+/i
-        #   @report.orientation = a_row_tag.split(':')[1].strip
-        #   @report.update_page_size()
-        #   @px_width = @report.page_width - @report.left_margin - @report.right_margin
-        # when /Size:.+/i
-        #   @report.paper_size = a_row_tag.split(':')[1].strip
-        #   @report.update_page_size()
-        #   @px_width = @report.page_width - @report.left_margin - @report.right_margin
-        # when /Report.isTitleStartNewPage:.+/i
-        #   @report.is_title_new_page =  a_row_tag.split(':')[1].strip == 'true'
-        # when /Report.leftMargin:.+/i
-        #   @report.left_margin =  a_row_tag.split(':')[1].strip.to_i
-        #   @px_width = @report.page_width - @report.left_margin - @report.right_margin
-        # when /Report.rightMargin:.+/i
-        #   @report.right_margin =  a_row_tag.split(':')[1].strip.to_i
-        #   @px_width = @report.page_width - @report.left_margin - @report.right_margin
-        # when /Report.topMargin:.+/i
-        #   @report.top_margin =  a_row_tag.split(':')[1].strip.to_i
-        # when /Report.bottomMargin:.+/i
-        #   @report.bottom_margin =  a_row_tag.split(':')[1].strip.to_i
-        # when /VScale:.+/i
-        #   @v_scale = a_row_tag.split(':')[1].strip.to_f
-        # when /Query:.+/i
-        #   @report.query_string = a_row_tag.split(':')[1].strip
         when /Id:.+/i
           @report.id = a_row_tag.split(':')[1].strip
-        # when /Group.expression:.+/i
-        #   @report.group ||= Group.new
-        #   @report.group.group_expression = a_row_tag.split(':')[1].strip
-        #   declare_expression_entities(@report.group.group_expression)
-        # when /Group.isStartNewPage:.+/i
-        #   @report.group ||= Group.new
-        #   @report.group.is_start_new_page = a_row_tag.split(':')[1].strip == 'true'
-        # when /Group.isReprintHeaderOnEachPage:.+/i
-        #   @report.group ||= Group.new
-        #   @report.group.is_reprint_header_on_each_page = a_row_tag.split(':')[1].strip == 'true'
         when /BasicExpressions:.+/i
           @widget_factory.basic_expressions = a_row_tag.split(':')[1].strip == 'true'
         when /Style:.+/i
@@ -913,6 +880,7 @@ module Xls
         f_id = nil
         rv  = nil
         binding = nil
+        pattern = nil
         exp = a_cell.value.to_s
         if nil != exp && exp.length > 0
           exp = Vrxml::Expression.translate(uri: 'TODO', expression: exp, relationship: @relationship, nc: @not_converted_expressions)
@@ -963,15 +931,16 @@ module Xls
           rv = TextField.new(binding: binding)
           rv.text_field_expression = exp.strip
           rv.pattern = pattern
-          rv.report_element
-        else
+        else        
           # basic text, no parameter(s)/field(s)/variable(s) or expression(s)
           ref = RubyXL::Reference.ind2ref(a_cell.row, a_cell.column)
           if @ref2name.include?(ref) && @report.named_cells.include?(@ref2name[ref])
             binding = @report.named_cells[@ref2name[ref]]
+            pattern = binding[:presentation]
           end
           rv = TextField.new(binding: binding)
           rv.text_field_expression = exp.strip
+          rv.pattern = pattern
         end
         
         # TODO: implement

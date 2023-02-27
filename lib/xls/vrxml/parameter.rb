@@ -37,7 +37,7 @@ module Xls
       
       attr_accessor :binding
       
-      def initialize(name:, java_class: nil,  binding: nil)
+      def initialize(name:, java_class: nil, binding: nil)
         if ! Parameter.expr().match name
           raise "Invalid 'parameter' name '#{name}'!"
         end
@@ -45,8 +45,11 @@ module Xls
         @is_for_prompting         = false
         @binding                  = binding || { __origin__: 'auto' }
         @java_class               = java_class || @binding[:java_class] || 'java.lang.String'
-        @description              = @binding[:description] || nil       
-        @default_value_expression = @binding[:default] || @binding[:default_value_expression] || name
+        @description              = @binding[:description] || nil
+        @default_value_expression = @binding[:default] || @binding[:defaultValueExpression] || name
+        if nil != @default_value_expression && 'java.lang.String' == @java_class
+          @default_value_expression = "'#{@default_value_expression}'"
+        end
       end
 
       def attributes

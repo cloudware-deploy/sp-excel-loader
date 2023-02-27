@@ -74,6 +74,9 @@ module Xls
           Binding.iterate_table(table: table, at: @sheet) do | row, cells |
             data = {}
             @columns.each do | k, _ |
+              if nil == cells[@columns[k]] || nil == cells[@columns[k]].value
+                next
+              end
               data[k] = {
                 cell: cells[@columns[k]],
                 name: k,
@@ -82,6 +85,7 @@ module Xls
                 column: @columns[k]
               }
             end # columns
+            next if 0 == data.keys.count
             @map[key][data['Name'][:value]] = data
           end # table
         end # tables loop
@@ -215,6 +219,7 @@ module Xls
       def self.iterate_table(table:, at:)
         ref = RubyXL::Reference.new(table.ref)
         for row in ref.row_range.begin()+1..ref.row_range.end()
+          next if nil == at[row]
           row_cells = []
           ref.col_range.each do |column|
             row_cells << at[row][column]
