@@ -22,6 +22,8 @@
 require 'rubyXL'
 require 'rubyXL/convenience_methods/workbook'
 require 'rubyXL/convenience_methods/worksheet'
+require 'rubyXL/convenience_methods/cell'
+require 'rubyXL/convenience_methods/font'
 
 require 'json'
 
@@ -55,6 +57,10 @@ require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'expression'
 require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'excel_to_vrxml'))
 
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'version'))
+
+
+require File.expand_path(File.join(File.dirname(__FILE__), 'legacy', 'collector'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'legacy', 'translator'))
 
 module Xls
   module Loader

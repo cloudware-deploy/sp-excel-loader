@@ -71,8 +71,7 @@ module RubyXL
     define_child_node(RubyXL::TableColumns)
     define_child_node(RubyXL::TableStyleInfo)
     define_element_name 'table'
-    set_namespaces('http://schemas.openxmlformats.org/spreadsheetml/2006/main' => '',
-     'http://schemas.openxmlformats.org/officeDocument/2006/relationships' => 'r')
+    set_namespaces('http://schemas.openxmlformats.org/spreadsheetml/2006/main' => nil)
 
     def xlsx_path
       ROOT.join('xl', 'tables', "table#{file_index}.xml")
@@ -86,7 +85,38 @@ module RubyXL
   end
 
   class Worksheet
+
     define_relationship(RubyXL::Table)
+
+    def add_table(id:, name:, ref:, columns:, style: 'TableStyleMedium5')
+
+      self.relationship_container ||= RubyXL::OOXMLRelationshipsFile.new
+      _t_n  = self.relationship_container.relationships.size + 1
+      _r_id = "rId#{_t_n}"
+      _target = "../tables/table#{_t_n}.xml"
+      self.relationship_container.relationships << RubyXL::Relationship.new(id: _r_id, target: _target, type: ::RubyXL::Table::REL_TYPE)
+      
+      table = RubyXL::Table.new(id: _t_n, name: name.to_underscore, ref: ref, display_name: name)
+      table.table_columns = ::RubyXL::TableColumns.new(count: 3)
+      columns.each do | column |
+        table.table_columns << ::RubyXL::TableColumn.new(id: column[:id], name: column[:name])
+      end
+      table.auto_filter = ::RubyXL::AutoFilter.new(ref: ref)
+      table.table_style_info = RubyXL::TableStyleInfo.new(name: style)
+      table.table_style_info.show_row_stripes = 1
+      
+      self.table_parts ||= ::RubyXL::TableParts.new
+      self.table_parts << ::RubyXL::TablePart.new(r_id: _r_id)
+      
+      # this will generate a xl/tables/table<n>.xml
+      self.generic_storage << table
+    end
+
+  end
+
+  class TablePart < OOXMLObject
+    define_relationship(:required => true)
+    define_element_name 'tablePart'
   end
 
 end

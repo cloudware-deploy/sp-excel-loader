@@ -1,0 +1,55 @@
+# encoding: utf-8
+#
+# Copyright (c) 2011-2023 Cloudware S.A. All rights reserved.
+#
+# Converts excel model to vrxml
+#
+# Utility program that converts a report defined in excel to vrxml report
+#
+# This file is part of xls2vrxml.
+#
+# xls2vrxml is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# xls2vrxml is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with xls2vrxml.  If not, see <http://www.gnu.org/licenses/>.
+#
+# encoding: utf-8
+#
+require 'optparse'
+require 'awesome_print'
+
+require 'xls/loader'
+require 'xls/legacy/translator'
+
+$args = {
+  out_dir: '.',
+  compat: false
+}
+
+#
+# Parse command line arguments
+#
+option_parser = OptionParser.new do |opts|
+  opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} -s<pdf.xlsx> -d<vpdf.xlsx>"
+  opts.on('-s', '--source=URI', "input to pdf.xlsx"       ) { |v| $args[:source]      = v }
+  opts.on('-d', '--destination=URI', "output to vpdf.xlsx") { |v| $args[:destination] = v }
+end
+option_parser.parse!
+
+#
+# Do the conversion
+#
+
+reader = ::Xls::Legacy::Translator.new(uri: $args[:source])
+reader.save(uri: $args[:destination])
+
+puts "%s ~> %s".cyan % [ "#{$args[:source]}".cyan, "#{$args[:destination]}".green ]
+0

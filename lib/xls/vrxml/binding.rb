@@ -38,6 +38,14 @@ module Xls
           { key: :named_cells, name: 'NAMED_CELLS_BINDING' },
           { key: :other      , name: 'OTHER'               }
       ]
+      def self.all()
+        return ALL
+      end
+
+      COLUMNS=['Name', 'Value', 'Updated At']
+      def self.columns()
+        return COLUMNS
+      end
 
       #
       # Initializer binding for a workbook
@@ -128,6 +136,7 @@ module Xls
         values.each do | k, v |
           cell = data[k.to_s][:cell]
           # ... update value ...
+          # TODO use .change_contents
           if nil == cell
             # ... by adding a new cell ...
             sheet.add_cell(data[k.to_s][:row], data[k.to_s][:column], v)
@@ -186,15 +195,15 @@ module Xls
       #
       # Get a table from a sheet.
       #
-      # @param named Table name.
-      # @param at Sheet.
+      # @param named    Table name.
+      # @param at       Sheet.
+      # @param optional When not optional, an error will be raised - otherwise nil will be returned.
       #
-      def self.get_table(named:, at:)
-        klass = Xls::Loader::TableRow.factory named
+      def self.get_table(named:, at:, optional: false)
         at.generic_storage.each do |tbl|
           return tbl if tbl.is_a? RubyXL::Table and tbl.name == named
         end
-        raise "Table #{named} NOT found!"
+        raise "Table #{named} NOT found!" if false == optional
       end
 
       #
@@ -290,6 +299,17 @@ module Xls
         else
             raise "Stopped"
         end
+      end
+
+      #
+      # Translate a string value to a boolean.
+      #
+      # @param a_value String value to translate.
+      #
+      # @return True of false. 
+      #
+      def self.to_b(value)
+        value.match(/(true|t|yes|y|1)$/i) != nil
       end
 
     end # of class 'Binding'
