@@ -59,6 +59,7 @@ module Xls
 
         @collector.binding.collect()
 
+
         # remove 'legacy' binding
         @workbook.worksheets.each_with_index do | sheet, index |
           if @legacy_binding_sheet.sheet_name == sheet.sheet_name 
@@ -71,13 +72,46 @@ module Xls
         # Define new 'translated' tables for new binding sheet.
         #
         tables = {
-          parameters: ( @collector.binding.parameters || {} ) [:translated],
-          fields:     ( @collector.binding.fields     || {} ) [:translated],
-          variables:  ( @collector.binding.variables  || {} ) [:translated],
-          bands:      ( @collector.bands.map[:bands]  || {} ) [:translated],
-          other:      ( @collector.bands.map[:other]  || {} ) [:translated],
+          parameters:  ( ( @collector.binding.parameters || {} ) [:translated] ).clone,
+          fields:      ( ( @collector.binding.fields     || {} ) [:translated] ).clone,
+          variables:   ( ( @collector.binding.variables  || {} ) [:translated] ).clone,
+          bands:       ( ( @collector.bands.map[:bands]  || {} ) [:translated] ).clone,
+          other:       ( ( @collector.bands.map[:other]  || {} ) [:translated] ).clone,
+          named_cells: {}
         }
                 
+        [:parameters, :fields, :variables ].each do | type |
+          if ! @collector.bands.elements[:translated][type]
+            next
+          end
+          tables[type] ||= {}
+          @collector.bands.elements[:translated][type].each do | _item |
+            tables[type][_item[:name]] = { name: _item[:name], value: { '__origin__': 'injected', java_class: 'java.lang.String' } }
+            if nil != _item[:ref]
+              i = RubyXL::Reference.ref2ind(_item[:ref])
+              @layout_sheet[i[0]][i[1]].change_contents(_item[:name])
+            end
+          end
+        end
+
+        # TODO 2.0: expressions or named cells
+
+        @collector.bands.elements[:translated][:cells].each do | cell |
+          i = RubyXL::Reference.ref2ind(cell[:ref])
+          # go to specific cell and patch it!
+          @layout_sheet[i[0]][i[1]].change_contents(cell[:expression])
+          # add named cell binding info
+          value = { name: cell[:ref], value: {}}
+          if nil != cell[:properties]
+            cell[:properties].each do | property |
+              value[:value][property[:name].to_sym] = property[:value]
+            end
+          end
+          tables[:named_cells][cell[:ref]] = value
+          # remove comment / notes
+          # TODO 2.0
+      end
+
         # add 'Binding' sheet
         @binding_sheet = @workbook.add_worksheet('Binding')
 

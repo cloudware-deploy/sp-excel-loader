@@ -66,6 +66,12 @@ module Xls
       # @param relationship
       # @param nc 		  Not converted expressions.
       #
+
+      LEGACY_PARAM_EXP = /\$[P]\{([a-zA-Z0-9_]+)\}/
+      LEGACY_FIELD_EXP = /\$[F]\{([a-zA-Z0-9_]+)\}/
+      LEGACY_VAR_EXP   = /\$[V]\{([a-zA-Z0-9_]+)\}/
+      LEGACY_EXP       = { parameter: LEGACY_PARAM_EXP, field: LEGACY_FIELD_EXP, variable: LEGACY_VAR_EXP }
+
       def self.translate(uri:, expression:, relationship:, nc:, caller: caller_locations(1,1)[0].base_label)
         # already translated?
         if expression.include?("$.") || expression.include?("$['")
@@ -82,17 +88,33 @@ module Xls
               :error => stderr.read
             }
             error = true
-            return expression
+            return "'#{expression}'"
           end
           rv = stdout.read.strip
           # no param/field/variable
           if 0 == rv.length
-              rv = expression
+            rv = expression
           end
           # log?
           if expression != rv && ( Vrxml::Log::TRANSLATION == ( Vrxml::Log::FLAGS & Vrxml::Log::TRANSLATION ) )
               puts "#{caller} called Expression.#{__method__}:".cyan
               puts "  '%s' ~> '%s'" %[ "#{expression}".yellow, "#{rv}".green ]
+          elsif expression == rv
+            # try via replacement
+            rv = expression
+            LEGACY_EXP.each do | type, regex |
+              while ( data = regex.match(rv) ) do
+                case type
+                when :parameter
+                  rv = rv.gsub(data[0], "$['#{data[1]}']")
+                when :field
+                  rv = rv.gsub(data[0], "$['#{relationship}'][index]['#{data[1]}']")                  
+                when :variable
+                  rv = rv.gsub(data[0], "$.$$VARIABLES[index]['#{data[1]}']")
+                else
+                end                
+              end
+            end
           end
           # success
           return rv

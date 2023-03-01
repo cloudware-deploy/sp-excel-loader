@@ -88,7 +88,7 @@ module RubyXL
 
     define_relationship(RubyXL::Table)
 
-    def add_table(id:, name:, ref:, columns:, style: 'TableStyleMedium5')
+    def add_table(id:, name:, ref:, columns:, style: 'TableStyleMedium2')
 
       self.relationship_container ||= RubyXL::OOXMLRelationshipsFile.new
       _t_n  = self.relationship_container.relationships.size + 1
@@ -96,7 +96,7 @@ module RubyXL
       _target = "../tables/table#{_t_n}.xml"
       self.relationship_container.relationships << RubyXL::Relationship.new(id: _r_id, target: _target, type: ::RubyXL::Table::REL_TYPE)
       
-      table = RubyXL::Table.new(id: _t_n, name: name.to_underscore, ref: ref, display_name: name)
+      table = RubyXL::Table.new(id: _t_n, name: name.to_underscore.upcase, ref: ref, display_name: name)
       table.table_columns = ::RubyXL::TableColumns.new(count: 3)
       columns.each do | column |
         table.table_columns << ::RubyXL::TableColumn.new(id: column[:id], name: column[:name])

@@ -48,7 +48,7 @@ module Xls
         @description              = @binding[:description] || nil
         @default_value_expression = @binding[:default] || @binding[:defaultValueExpression] || name
         if nil != @default_value_expression && 'java.lang.String' == @java_class
-          @default_value_expression = "'#{@default_value_expression}'"
+          @default_value_expression = "\"#{@default_value_expression}\""
         end
       end
 

@@ -18,13 +18,15 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with xls2vrxml.  If not, see <http://www.gnu.org/licenses/>.
 #
-class String
 
+class String
+  
   def to_underscore!
-    gsub!(/(.)([A-Z])/,'\1_\2')
+    gsub!(/::/, "/")
+    gsub!(/([A-Z]+)([A-Z][a-z])/, '\1_\2')
+    gsub!(/([a-z\d])([A-Z])/, '\1_\2')
+    tr!("-", "_")
     downcase!
-    strip!
-    delete!(' ')
   end
 
   def to_underscore

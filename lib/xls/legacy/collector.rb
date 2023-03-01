@@ -93,6 +93,9 @@ module Xls
 
         private
 
+        #
+        #
+        #
         def self.table_columns(table:)
           map = {}
           table.table_columns.each_with_index do | column , index |
@@ -101,6 +104,9 @@ module Xls
           map
         end
 
+        #
+        #
+        #
         def self.table_to_array(table:, worksheet:, relationship:, nce:, alt_id: :id)
           #
           columns = {}
@@ -123,14 +129,18 @@ module Xls
             end
             map[j[:id]] = j
           end
-        # translate
+          # translate
           translation = {}
           map.each do | k, v |
             id = ::Xls::Vrxml::Expression.translate(uri: 'TODO', expression: k, relationship: relationship, nc: nce)
             h = {}
             v.each do | k1, v1 |
               next if v1.nil?
-              h[k1] = v1
+              if v1.is_a?(String) && [:name, :expression, :initial_expression].include?(k1)
+                h[k1] = ::Xls::Vrxml::Expression.translate(uri: 'TODO', expression: v1, relationship: relationship, nc: nce)
+              else
+                h[k1] = v1
+              end              
             end
             h.delete(:id)
             if h.include?(:editable)
@@ -147,6 +157,7 @@ module Xls
       class Bands < TheCollector
 
         attr_accessor :map
+        attr_accessor :elements
 
         #
         # Initialize a 'Bands' collector.
@@ -161,12 +172,15 @@ module Xls
           @map[:other] = { legacy: { report: {}, group: {}, other:{}, unused: {} } }
           @empty_rows  = [] 
           @cz_comments = []
+          @elements    = { legacy: {} }
         end
           
         #
         # Collect and translate 'Bands' data.
         #
         def collect()
+
+          # collect bands
           @band_type = nil
           for row in @worksheet.dimension.ref.row_range
             next if @worksheet[row].nil?
@@ -176,7 +190,67 @@ module Xls
             if @band_type != row_tag
               process_row_mtag(row: row, row_tag: row_tag)
             end
+            if nil != @band_type
+              @map[:bands][:legacy][@band_type][:end_row] = row
+            end
           end
+
+          # collect bands cells
+          @elements[:legacy] = {}
+          has_comments = nil != @worksheet.comments && @worksheet.comments.size > 0 && nil != @worksheet.comments[0].comment_list
+          @map[:bands][:legacy].each do | name, properties |
+
+            @elements[:legacy][name] = []
+
+            for row in properties[:start_row]..properties[:end_row] do
+
+              column = 1
+              r_data = @worksheet[row]
+              while column < r_data.size do
+                cell = nil
+                # has value?
+                if nil != r_data[column].value
+                  # sanitize
+                  value = sanitize(r_data[column].value.strip)
+                  # still valid?
+                  if 0 != value.length                     
+                    # track
+                    cell = { hint: RubyXL::Reference.new(row,column).to_s, row: row, column: column, value: value, comments: [] }
+                  end                 
+                end
+                # collect comments
+                if nil != cell 
+                  if true == has_comments
+                    @worksheet.comments[0].comment_list.each_with_index do | comment, index |
+                      if ! ( comment.ref.col_range.begin == column && comment.ref.row_range.begin == row )
+                        next
+                      end
+                      comment.text.to_s.lines.each do |text|
+                        text.strip!
+                        next if text == '' or text.nil?
+                        idx = text.index(':')
+                        next if idx.nil?
+                        tag   = text[0..(idx-1)]
+                        value = text[(idx+1)..-1]
+                        next if tag.nil? or value.nil?
+                        tag.strip!
+                        value.strip!
+                        cell[:comments] << { hint: RubyXL::Reference.new(row,column).to_s, row: comment.ref.row_range.begin, column: comment.ref.col_range.begin, tag: tag, value: value }
+                        @cz_comments << index
+                      end
+                    end
+                  end
+                  @elements[:legacy][name] << cell
+                end
+                # next
+                column += 1
+
+              end # while
+
+            end # for
+
+          end # each
+
           # translate
           translated = {}
           @map.each do | k, h |
@@ -184,6 +258,7 @@ module Xls
             h[:legacy].each do | k1, v1 |
               t = { name: k1, value: {}, updated_at: Time.now.utc.to_s }
               v1.each do | k2, v2 |
+                next if [:start_row, :end_row, :elements].include?(k2)
                 if v2.is_a?(String)                  
                   t[:value][k2.to_sym] = ::Xls::Vrxml::Expression.translate(uri: 'TODO', expression: v2, relationship: @relationship, nc: @nce)
                 else
@@ -191,6 +266,84 @@ module Xls
                 end
               end
               translated[k][k1] = t
+            end
+          end
+          # elements
+          @elements[:translated] = { fields: [], parameters: [], variables: [], cells:[] }
+          @elements[:legacy].each do | band, elements |
+
+            elements.each do | element |
+
+              pfv = nil
+              exp = nil
+              expression = Vrxml::Expression.translate(uri: 'TODO', expression: element[:value], relationship: @relationship, nc: @nce)
+              ( Vrxml::Expression.extract(expression: expression) || [] ).each do | e |
+                case e[:type]
+                when :param
+                  pfv ||=[]
+                  pfv << { ref: element[:hint], append: :parameters, type: e[:type], name: e[:value] }
+                when :field
+                  pfv ||=[]
+                  pfv << { ref: element[:hint], append: :fields, type: e[:type], name: e[:value] }
+                when :variable
+                  pfv ||=[]
+                  pfv << { ref: element[:hint], append: :variables, type: e[:type], name: e[:value] }
+                else
+                  raise "???"
+                end
+              end
+
+              if nil == pfv
+                exp = { ref: element[:hint] }
+                if ( m = expression.match(/\$SE\{(.*)\}/) )
+                  exp[:properties] = [{ name: 'textFieldExpression', value: m[1] } ]
+                  # TODO: 2.0 exp[:expression] = "$SE{#{m[1]}}"
+                  exp[:expression] = m[1].strip
+                else
+                  exp[:expression] = expression
+                end
+              end
+
+              # comments 2 fields or expr
+              element[:comments].each do | comment |
+                #
+                case comment[:tag]
+                when 'PT', 'pattern'
+                  property = { name: 'pattern', value: Vrxml::Expression.translate(uri: 'TODO', expression: comment[:value], relationship: @relationship, nc: @nce) }
+                else
+                  puts "tag: #{comment[:tag]}, value: #{comment[:value]}".red
+                  next
+                end
+                #
+                if nil != pfv
+                  pfv[:properties] ||= []
+                  pfv[:properties] << property
+                elsif nil != exp
+                  exp[:properties] ||= []
+                  exp[:properties] << property
+                else 
+                  raise "WTF?"
+                end
+              end
+              #
+                            
+              # pfv?
+              if nil != pfv
+                # add all possible missing parameters / fields / variables
+                pfv.each do | _item |
+                    _item[:properties] ||= [] 
+                    _item[:properties] << { name: 'java_class', value: 'java.lang.String' }
+                    @elements[:translated][_item[:append]] << { name: _item[:name], ref: _item[:ref] }
+                end
+              elsif nil != exp
+                exp[:properties] ||= []
+                exp[:properties] << { name: 'java_class', value: 'java.lang.String' }
+                @elements[:translated][:cells] << exp
+              else 
+                raise "WTF?"
+              end
+              #
+
             end
           end
           #
@@ -202,7 +355,8 @@ module Xls
           o.each do | k, v |
             v[:name] = v[:name].to_s.upcase
             @map[:other][k] = v
-          end
+          end          
+        
         end
 
         #
@@ -222,6 +376,29 @@ module Xls
         end
 
       private
+
+        def sanitize(value)
+          # try to fix bad expressions
+          if value.match(/^[^$"']/) && ( value.include?("$P{") || value.include?("$F{") || value.include?("$V{") || value.include?("$[") || value.include?("$.") || value.include?("$.$$V") )
+            _parts = value.split(' ')
+            if _parts.count > 1
+              _value = ''
+              _parts.each do | _part |
+                if _part.match(/^[$].*/) || _part.match(/^\(\$.*/)
+                  _value += "+ #{_part} "
+                else
+                  _value += "+ '#{_part} '"
+                end
+              end
+              if _value.length > 2
+                _value = _value[2..-1]
+              end
+              value = _value.strip
+              ap value
+            end
+          end
+          value
+        end
 
         def map_row_tag(tag:, allow_sub_bands: true)
           unless allow_sub_bands
@@ -248,40 +425,40 @@ module Xls
           case tag
           when /BG\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /TL\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /PH\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /CH\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /DT\d*/          
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /CF\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /PF\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /LPF\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /SU\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /ND\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /GH\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /GF\d*:/
             @band_type = tag
-            @map[:bands][:legacy][tag] ||= {}
+            @map[:bands][:legacy][tag] ||= { start_row: row, end_row: row }
           when /Orientation:.+/i
             @map[:other][:legacy][:other][:orientation] = tag.split(':')[1].strip
             clear = true
@@ -342,8 +519,9 @@ module Xls
                   case tag
                   when 'PE' , 'printWhenExpression'
                     if false == @map[:bands][:legacy][@band_type].include?(:printWhenExpression)
-                      @map[:bands][:legacy][@band_type][:printWhenExpression] = value
                       # TODO 2.0: ? transform_expression(value) # to force declaration of paramters/fields/variables
+                      # ap ::Xls::Vrxml::Expression.translate(uri: 'TODO', expression: value, relationship: relationship, nc: nce)
+                      @map[:bands][:legacy][@band_type][:printWhenExpression] = value
                       @cz_comments << index
                     end
                   when 'AF', 'autoFloat'
