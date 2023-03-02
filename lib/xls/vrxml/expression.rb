@@ -29,9 +29,9 @@ module Xls
     class Expression < Object
 
       PFV_EXPR = {
-        'param': Parameter.expr,
-        'field': Field.expr,
-        'variable': Variable.expr
+        'param': Parameter.capture,
+        'field': Field.capture,
+        'variable': Variable.capture
       }
 
       #
@@ -48,7 +48,7 @@ module Xls
           }
         end
         # log?
-        if all.count > 0 && ( Vrxml::Log::EXTRACTION == ( Vrxml::Log::FLAGS & Vrxml::Log::EXTRACTION ) )
+        if all.count > 0 && ( Vrxml::Log::EXTRACTION == ( Vrxml::Log::MASK & Vrxml::Log::EXTRACTION ) )
           print "#{caller} called Expression.#{__method__}: ".cyan
           print "#{expression}".yellow
           print " #{all.count > 1 ? 'expression' : 'param/field/variable' }\n".cyan
@@ -82,12 +82,13 @@ module Xls
         error = false
         Open3.popen3('jrxml2vrxml', '-s', "#{expression}", '-r', "#{relationship || '<replace-me>'}") do |stdin, stdout, stderr, wait_thr|
           if 0 != ( wait_thr.value.to_i >> 8 )
-            puts "UNABLE TO CONVERT: #{expression}".red
+            ::Xls::Vrxml::Log.WARNING(msg: "Unable to convert expression: #{expression}")
             nc[expression] = {
               :jrxml => uri,
               :error => stderr.read
             }
             error = true
+            # TODO 2.0? is this ok ?
             return "'#{expression}'"
           end
           rv = stdout.read.strip
@@ -95,25 +96,33 @@ module Xls
           if 0 == rv.length
             rv = expression
           end
-          # log?
-          if expression != rv && ( Vrxml::Log::TRANSLATION == ( Vrxml::Log::FLAGS & Vrxml::Log::TRANSLATION ) )
-              puts "#{caller} called Expression.#{__method__}:".cyan
-              puts "  '%s' ~> '%s'" %[ "#{expression}".yellow, "#{rv}".green ]
+          # success or failure?
+          if expression != rv
+            # success, log
+            ::Xls::Vrxml::Log.TRACE(who: caller, what: __method__)
+            ::Xls::Vrxml::Log.TRANSLATION(from: expression, to: rv)
           elsif expression == rv
-            # try via replacement
+            # failure, try via replacement
             rv = expression
             LEGACY_EXP.each do | type, regex |
               while ( data = regex.match(rv) ) do
                 case type
                 when :parameter
                   rv = rv.gsub(data[0], "$['#{data[1]}']")
+                  error = false
                 when :field
-                  rv = rv.gsub(data[0], "$['#{relationship}'][index]['#{data[1]}']")                  
+                  rv = rv.gsub(data[0], "$['#{relationship}'][index]['#{data[1]}']")
+                  error = false
                 when :variable
                   rv = rv.gsub(data[0], "$.$$VARIABLES[index]['#{data[1]}']")
+                  error = false
                 else
                 end                
               end
+            end # LEGACY_EXP
+            # log?
+            if false == error
+              ::Xls::Vrxml::Log.TRANSLATION(from: expression, to: rv)
             end
           end
           # success

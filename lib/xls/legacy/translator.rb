@@ -41,7 +41,7 @@ module Xls
       end
       
 
-      def save(uri:)
+      def translate(to:)
         # @comments = load_comments()
         # @comments.each do | k, v |
         # end
@@ -176,11 +176,12 @@ module Xls
           ])  
         end
 
-        # validate
-        # TODO 2.0: zero comments should remain
+        # validate if 
+        # TODO 2.0: zero comments
+        # TODO 2.0: zero missing translations
 
         # done
-        @workbook.save(uri)
+        @workbook.save(to)
       end
 
       private

@@ -21,7 +21,7 @@
 
 require 'bigdecimal'
 require 'date'
-require File.expand_path(File.join(File.dirname(__FILE__), 'rubyxl_table_patch'))
+require_relative File.join('..', 'extension', 'rubyxl')
 
 module Xls
   module Loader

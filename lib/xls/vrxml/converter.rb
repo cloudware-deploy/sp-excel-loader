@@ -28,7 +28,7 @@ require_relative 'variable'
 module Xls
   module Vrxml
 
-    class ExcelToVrxml < Loader::WorkbookLoader
+    class Converter < Loader::WorkbookLoader
 
       @@CT_IndexedColors = [
         '000000', # 0
@@ -270,16 +270,7 @@ module Xls
         #
         File.write(to, document.to_xml( :indent => 2, :encoding => Encoding::UTF_8.to_s, :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML ))
       end
-
-      #
-      # Save current workbook.
-      #
-      # @param uri Output XLSX.
-      #
-      def save(uri:)
-        @workbook.save(uri)
-      end
-
+      
       #
       # Convert to tables
       #
@@ -294,13 +285,16 @@ module Xls
         column_footer = xml.xpath('x:jasperReport/x:columnFooter', 'x' => @@xmlns)
         group				  = xml.xpath('x:jasperReport/x:group', 'x' => @@xmlns)      
 
-        puts "--- --- --- TABLES --- --- --- "
+        # log
+        Vrxml::Log::LOG_IF(msg: "--- --- --- TABLES --- --- --- ", bits: Vrxml::Log::TABLES)
         
         # puts " - detail_band = #{detail_band.count}, column_header = #{column_header.count}, column_footer = #{column_footer.count}..."
         if 0 == detail_band.count && 0 == column_header.count && 0 == column_footer.count && 0 == group.count
-          puts "No tables...".white
+          # log
+          Vrxml::Log::LOG_IF(msg: "No tables...".white, bits: Vrxml::Log::TABLES)
         else
-          puts "Patching tables...".white
+          # log
+          Vrxml::Log::LOG_IF(msg: "Patching tables...".white, bits: Vrxml::Log::TABLES)
           # patch table
           jasper_report[0]['dataSourceType'] = 'legacy'
 
@@ -317,17 +311,22 @@ module Xls
               detail_band[0].after(table)
             end
           end
+          # log
+          Vrxml::Log::LOG_IF(msg: '  Re-parenting nodes...', bits: Vrxml::Log::TABLES)
           # 're-parenting' nodes
-          puts '  Re-parenting nodes...'
           [column_header, detail_band, column_footer, group].each do | a |
             a.each do | node |
-              # if @@k_log_level_tables == ( @log_level & @@k_log_level_tables )
-                puts "    #{node.name}"
-              # end
+              #
               node.parent = table
-            end
+               # log
+               Vrxml::Log::LOG_IF(msg: "    #{node.name}", bits: Vrxml::Log::TABLES)
+              end
           end
         end # if
+
+        # log
+        Vrxml::Log::LOG_IF(msg: "--- --- --- --- --- --- --- ", bits: Vrxml::Log::TABLES)
+
       end # convert_to_tables
 
       private
@@ -1151,7 +1150,7 @@ module Xls
       end
 
 
-    end # class ExcelToVrxml
+    end # class Converter
 
   end # of module 'Vrxml'
 end # of module 'Xls'

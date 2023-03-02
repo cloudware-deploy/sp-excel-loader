@@ -28,7 +28,11 @@ module Xls
       def self.expr
         @@expression
       end
-      @@capture = /^\$\.\$\$VARIABLES\[index\]\['([a-zA-Z0-9_#]+)'\]/
+
+      @@capture = /.*(\$\.\$\$VARIABLES\[index\]\['([a-zA-Z0-9_#]+)'\])+.*/
+      def self.capture
+        @@capture
+      end
 
       @@known_variables = [
         { name: 'LOCALE'	    	        , java_class: 'java.lang.String' , calculation: 'System' },

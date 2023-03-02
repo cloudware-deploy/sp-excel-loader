@@ -259,8 +259,8 @@ module Xls
               t = { name: k1, value: {}, updated_at: Time.now.utc.to_s }
               v1.each do | k2, v2 |
                 next if [:start_row, :end_row, :elements].include?(k2)
-                if v2.is_a?(String)                  
-                  t[:value][k2.to_sym] = ::Xls::Vrxml::Expression.translate(uri: 'TODO', expression: v2, relationship: @relationship, nc: @nce)
+                if v2.is_a?(String)
+                  t[:value][k2.to_sym] = translate(expression: v2)
                 else
                   t[:value][k2.to_sym] = v2
                 end
@@ -377,6 +377,42 @@ module Xls
 
       private
 
+        #
+        # Translate a JRXML JAVA expression to VRXML expression.
+        #
+        # @param expression JRXML JAVA expression to translate.
+        #
+        # @return VRXML expression
+        #
+        def translate(expression:, relationship: @relationship, nce: @nce)
+          translated = Vrxml::Expression.translate(uri: 'TODO', expression: expression, relationship: relationship, nc: nce)
+          ( Vrxml::Expression.extract(expression: translated) || [] ).each do | e |
+            case e[:type]
+            when :param
+              ::Xls::Vrxml::Log.TODO(msg: "Add possible MISSING parameter %s" % [e[:value]])
+              # pfv ||=[]
+              # pfv << { ref: element[:hint], append: :parameters, type: e[:type], name: e[:value] }
+            when :field
+              ::Xls::Vrxml::Log.TODO(msg: "Add possible MISSING field %s" % [e[:value]])
+              # pfv ||=[]
+              # pfv << { ref: element[:hint], append: :fields, type: e[:type], name: e[:value] }
+            when :variable
+              ::Xls::Vrxml::Log.TODO(msg: "Add possible MISSING variable %s" % [e[:value]])
+              # pfv ||=[]
+              # pfv << { ref: element[:hint], append: :variables, type: e[:type], name: e[:value] }
+            else
+              raise "???"
+            end # case
+          end # each
+          ap " a) #{expression}"
+          ap " b) #{translated}"
+          # done
+          translated
+        end
+
+        #
+        # Sanitize a cell value.
+        #
         def sanitize(value)
           # try to fix bad expressions
           if value.match(/^[^$"']/) && ( value.include?("$P{") || value.include?("$F{") || value.include?("$V{") || value.include?("$[") || value.include?("$.") || value.include?("$.$$V") )
@@ -394,7 +430,6 @@ module Xls
                 _value = _value[2..-1]
               end
               value = _value.strip
-              ap value
             end
           end
           value

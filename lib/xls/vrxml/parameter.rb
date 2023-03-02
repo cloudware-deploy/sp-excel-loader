@@ -28,6 +28,11 @@ module Xls
       def self.expr
         @@expression
       end
+      
+      @@capture = /.*(\$\['[a-zA-Z0-9_#]+\'\])+.*/
+      def self.capture
+        @@capture
+      end
 
       attr_accessor :name
       attr_accessor :java_class

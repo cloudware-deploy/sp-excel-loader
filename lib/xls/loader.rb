@@ -27,9 +27,9 @@ require 'rubyXL/convenience_methods/font'
 
 require 'json'
 
-require File.expand_path(File.join(File.dirname(__FILE__), 'monkey'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'extension', 'string'))
 
-require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'rubyxl_table_patch'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'extension', 'rubyxl'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'workbookloader'))
 
 require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'object'))
@@ -54,7 +54,7 @@ require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'property'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'property_expression'))
 
 require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'expression'))
-require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'excel_to_vrxml'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'converter'))
 
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'version'))
 
