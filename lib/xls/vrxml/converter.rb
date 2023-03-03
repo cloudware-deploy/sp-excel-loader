@@ -133,11 +133,11 @@ module Xls
           # ... for all 'parameter/field/variable' ...
           map.each do | name, value |
             # ... fetch binding ...
-            binding = ::Xls::Vrxml::Binding.parse(type: type.to_s, value: value['Value'][:value] || "{\"__origin__\": \"auto\"}")
+            binding = ::Xls::Vrxml::Binding.parse(type: type.to_s, value: value['Value'][:value] || "{\"__origin__\": \"#{__method__}\"}")
             case type
             when :parameters, :fields, :variables
               binding[:type] ||= 'String'
-              binding[:java_class] = ::Xls::Vrxml::Binding.to_java_class(binding[:type])
+              binding[:java_class] ||= ::Xls::Vrxml::Binding.to_java_class(binding[:type])
             end
             # ... declare it ...
             case type
@@ -879,47 +879,59 @@ module Xls
         rv  = nil
         binding = nil
         pattern = nil
-        exp = a_cell.value.to_s
-        if nil != exp && exp.length > 0
-          exp = Vrxml::Expression.translate(uri: 'TODO', expression: exp, relationship: @relationship, nc: @not_converted_expressions)
-        end
-        all = Vrxml::Expression.extract(expression: exp) || []
-        if all.count > 1
-          ap "unfinished! WTF??"
-          require 'byebug' ; debugger
-          f_id = element[:value]
-          j_ks = nil # or 'java.lang.String'
-          # single param / field / variable
-          element = all[0]
-          case element[:type]
-          when :param
-            @report.add_parameter(id: f_id, name: f_id, java_class: j_ks)
-          when :field
-            @report.add_field(id: f_id, name: f_id, java_class: j_ks)
-          when :variable
-            @report.add_variable(id: f_id, name: f_id, java_class: j_ks)
-          else
-            raise "???"
+        _exp, _ext = Vrxml::Expression.translate(expression: a_cell.value.to_s, relationship: @relationship, nce: @nce)
+        if _ext.count > 1
+          # expression - not a single parameter/field/variable
+
+          # a) collect possible missing parameter/field/variable
+          _ext.each do | e |
+            case e[:type]
+            when :parameter
+              if false == @report.parameters.include?(e[:value])
+                ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: Add possible MISSING parameter %s" % [e[:value]])
+              end
+            when :field
+              if false == @report.fields.include?(e[:value])
+                ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: Add possible MISSING field %s" % [e[:value]])
+              end
+            when :variable
+              if false == @report.variables.include?(e[:value])
+                ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: Add possible MISSING parameter %s" % [e[:value]])
+              end
+            else
+              raise "WTF?"
+            end
           end
-          puts "TODO: rv = @widget_factory.new_for_field(f_id, self)".red
-          require 'byebug' ; debugger
-        elsif all.count > 0
+          # named cell
+          ref = RubyXL::Reference.ind2ref(a_cell.row, a_cell.column)
+          if false == @report.named_cells.include?(ref)
+            ap "TODO: add named cell ref"
+            require 'byebug' ; debugger
+          end
+          #
+          rv = TextField.new(binding: binding)
+          if ( m = _exp.match(/\$SE\{(.*)\}/) )
+            rv.text_field_expression = m[1]
+          else
+            rv.text_field_expression = _exp
+          end
+        elsif 1 == _ext.count
           # TODO: 2.0            
           binding = nil
           pattern = nil
-          case all[0][:type]
+          case _ext[0][:type]
           when :param
-            binding = @report.parameters[all[0][:value]] ? @report.parameters[all[0][:value]].binding : nil
+            binding = @report.parameters[_ext[0][:value]] ? @report.parameters[_ext[0][:value]].binding : nil
             if nil != binding
               pattern = binding[:presentation]
             end
           when :field
-            binding = @report.fields[all[0][:value]] ? @report.fields[all[0][:value]].binding : nil
+            binding = @report.fields[_ext[0][:value]] ? @report.fields[_ext[0][:value]].binding : nil
             if nil != binding
               pattern = binding[:presentation]
             end
           when :variable
-            binding = @report.variables[all[0][:value]] ? @report.variables[all[0][:value]].binding : nil
+            binding = @report.variables[_ext[0][:value]] ? @report.variables[_ext[0][:value]].binding : nil
             if nil != binding
               pattern = binding[:presentation]
             end
@@ -927,7 +939,11 @@ module Xls
               raise "???"
           end
           rv = TextField.new(binding: binding)
-          rv.text_field_expression = exp.strip
+          if ( m = _exp.match(/\$SE\{(.*)\}/) )
+            rv.text_field_expression = m[1]
+          else
+            rv.text_field_expression = _exp
+          end
           rv.pattern = pattern
         else        
           # basic text, no parameter(s)/field(s)/variable(s) or expression(s)
@@ -937,8 +953,11 @@ module Xls
             pattern = binding[:presentation]
           end
           rv = TextField.new(binding: binding)
-          rv.text_field_expression = exp.strip
-          rv.pattern = pattern
+          if ( m = _exp.match(/\$SE\{(.*)\}/) )
+            rv.text_field_expression = m[1]
+          else
+            rv.text_field_expression = _exp
+          end
         end
         
         # TODO: implement
@@ -1049,13 +1068,10 @@ module Xls
       end
 
       def transform_expression(expression:)
-        # translate expression
-        _exp = Vrxml::Expression.translate(uri: 'TODO', expression: expression, relationship: @relationship, nc: @not_converted_expressions, caller: caller_locations(1,1)[0].base_label)
-        # collect parameters/fields/variables in expression
-        all = Vrxml::Expression.extract(expression: _exp)
+        _exp, _ext = Vrxml::Expression.translate(expression: v2, relationship: @relationship, nce: @not_converted_expressions)
         # add all parameters/fields/variables
-        if all.count > 0
-          all.each do | element |
+        if _ext.count > 0
+          _ext.each do | element |
             f_id = element[:value]
             j_ks = nil # or 'java.lang.String'
             case element[:type]

@@ -41,10 +41,14 @@ module Xls
       #
       def self.extract(expression:, caller: caller_locations(1,1)[0].base_label)
         all = []
+        done = []
         # collect
         PFV_EXPR.each do | key, exp |
           expression.scan(exp) { | v |
-            all << { type: key, value: v }
+            if false == done.include?(v[0])
+              all << { type: key, value: v[0] }
+              done << v[0]
+            end
           }
         end
         # log?
@@ -57,6 +61,48 @@ module Xls
         # done
         all
       end
+
+      #
+      # Translate a JRXML JAVA expression to VRXML expression.
+      #
+      # @param expression JRXML JAVA expression to translate.
+      #
+      # @return VRXML expression
+      #
+      def self.translate(expression:, relationship:, nce:, tracking: { file: __FILE__, line: __LINE__, method: __method__, caller: caller_locations(1,1)[0].base_label })
+        _exp = expression.strip
+        _ext = []
+        if 0 == _exp.length
+          return _exp, _ext
+        end
+        _exp = Vrxml::Expression.i_translate(expression: _exp, relationship: relationship, nce: nce, tracking: tracking)
+        ( Vrxml::Expression.extract(expression: _exp) || [] ).each do | e |
+          case e[:type]
+          when :param
+            _ext << e
+            # ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: Add possible MISSING parameter %s" % [e[:value]])
+            # pfv ||=[]
+            # pfv << { ref: element[:hint], append: :parameters, type: e[:type], name: e[:value] }
+          when :field
+            _ext << e
+            # ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: Add possible MISSING field %s" % [e[:value]])
+            # pfv ||=[]
+            # pfv << { ref: element[:hint], append: :fields, type: e[:type], name: e[:value] }
+          when :variable
+            _ext << e
+            # ::Xls::Vrxml::Log.WARNING(msg: "@ #{__method__}: Add possible MISSING variable %s" % [e[:value]])
+            # @elements[:translated][:variables] << { name: e[:value], ref: "TODO", java_class: 'java.lang.Integer', initialValueExpression: 0 }
+            # pfv ||=[]
+            # pfv << { ref: element[:hint], append: :variables, type: e[:type], name: e[:value] }
+          else
+              raise "???"
+          end # case
+        end # each
+        # done
+        return _exp, _ext
+      end
+
+      private
 
       #
       # Translate a JAVA expression into a JS ( V8 ) expression.
@@ -72,7 +118,7 @@ module Xls
       LEGACY_VAR_EXP   = /\$[V]\{([a-zA-Z0-9_]+)\}/
       LEGACY_EXP       = { parameter: LEGACY_PARAM_EXP, field: LEGACY_FIELD_EXP, variable: LEGACY_VAR_EXP }
 
-      def self.translate(uri:, expression:, relationship:, nc:, caller: caller_locations(1,1)[0].base_label)
+      def self.i_translate(uri: 'TODO', expression:, relationship:, nce:, tracking:)
         # already translated?
         if expression.include?("$.") || expression.include?("$['")
           # ... done ...
@@ -82,8 +128,10 @@ module Xls
         error = false
         Open3.popen3('jrxml2vrxml', '-s', "#{expression}", '-r', "#{relationship || '<replace-me>'}") do |stdin, stdout, stderr, wait_thr|
           if 0 != ( wait_thr.value.to_i >> 8 )
+            # log
             ::Xls::Vrxml::Log.WARNING(msg: "Unable to convert expression: #{expression}")
-            nc[expression] = {
+            # track
+            nce[expression] = {
               :jrxml => uri,
               :error => stderr.read
             }
@@ -99,8 +147,7 @@ module Xls
           # success or failure?
           if expression != rv
             # success, log
-            ::Xls::Vrxml::Log.TRACE(who: caller, what: __method__)
-            ::Xls::Vrxml::Log.TRANSLATION(from: expression, to: rv)
+            ::Xls::Vrxml::Log.TRANSLATION(from: expression, to: rv, tracking: tracking)
           elsif expression == rv
             # failure, try via replacement
             rv = expression
@@ -122,13 +169,13 @@ module Xls
             end # LEGACY_EXP
             # log?
             if false == error
-              ::Xls::Vrxml::Log.TRANSLATION(from: expression, to: rv)
+              ::Xls::Vrxml::Log.TRANSLATION(from: expression, to: rv, tracking: tracking)
             end
           end
           # success
           return rv
         end # popen3
-      end
+      end      
 
     end # class 'Expression'
 

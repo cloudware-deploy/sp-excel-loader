@@ -56,9 +56,10 @@ require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'property_ex
 require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'expression'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'converter'))
 
+#
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'version'))
 
-
+# legacy
 require File.expand_path(File.join(File.dirname(__FILE__), 'legacy', 'collector'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'legacy', 'translator'))
 

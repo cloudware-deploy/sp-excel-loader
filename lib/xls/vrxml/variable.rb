@@ -29,7 +29,7 @@ module Xls
         @@expression
       end
 
-      @@capture = /.*(\$\.\$\$VARIABLES\[index\]\['([a-zA-Z0-9_#]+)'\])+.*/
+      @@capture = /(\$\.\$\$VARIABLES\[index\]\['([a-zA-Z0-9_#]+)'\])+/
       def self.capture
         @@capture
       end

@@ -29,7 +29,7 @@ module Xls
         @@expression
       end
       
-      @@capture = /.*(\$\['[a-zA-Z0-9_#]+\'\])+.*/
+      @@capture = /(\$\['[a-zA-Z0-9_#]+\'\])+(?!.*\[)/
       def self.capture
         @@capture
       end

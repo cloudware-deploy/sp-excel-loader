@@ -40,7 +40,7 @@ module Xls
       WHAT_IS         = 0x800
       SHOW_V8_EXPR    = 0xFFF
 
-      MASK           = SHOW_INFO | STEPS | WARNINGS | ERRORS | TODO
+      MASK           = SHOW_INFO | STEPS | WARNINGS | ERRORS | TODO | TRANSLATIONS
       # | TABLES
       # | TRACE | TRANSLATIONS
 
@@ -74,9 +74,9 @@ module Xls
         end
       end
 
-      def self.TRANSLATION(from:, to:)
+      def self.TRANSLATION(from:, to:, tracking: nil)
         if ( Vrxml::Log::TRANSLATIONS == ( Vrxml::Log::MASK & Vrxml::Log::TRANSLATIONS ) )
-          puts " ➢ TRANSLATION:\n    %s \n    %s".white % [ "#{from}".cyan, "#{to}".green ]
+          puts " ➢ TRANSLATION ( @ %s ) :\n    %s \n    %s".white % [ "#{tracking[:caller]}".yellow, "#{from}".cyan, "#{to}".green ]
         end
       end
 

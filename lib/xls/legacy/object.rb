@@ -18,30 +18,20 @@
 # along with xls2vrxml.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-require_relative 'bands'
-require_relative 'binding'
+require_relative 'object'
 
 module Xls
   module Legacy
 
-    class Collector
-      
-      attr_accessor :bands
-      attr_accessor :binding
+    class TheCollector
 
-      #
-      # Initialize a 'collector'.
-      #
-      # @param layout       'Layout' sheet
-      # @param binding      'Data Binding' sheet
-      # @param relationship for translation purpose.
-      #
-      def initialize(layout:, binding:, relationship:'lines')
-        @bands   = Bands.new(sheet: layout, relationship: relationship)
-        @binding = Binding.new(sheet: binding, relationship: relationship)
+      def initialize(sheet:, relationship:'lines')
+        @worksheet    = sheet
+        @relationship = relationship
+        @nce          = {} # not converted expressions
       end
 
-    end # of class 'Collector'
+    end
 
   end # of module 'Legacy'
 end # of module 'Xls'

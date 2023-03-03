@@ -86,7 +86,10 @@ module Xls
           end
           tables[type] ||= {}
           @collector.bands.elements[:translated][type].each do | _item |
-            tables[type][_item[:name]] = { name: _item[:name], value: { '__origin__': 'injected', java_class: 'java.lang.String' } }
+            if true == tables[type].include?(_item[:name])
+              next
+            end
+            tables[type][_item[:name]] = { name: _item[:name], value: { '__origin__': "\"#{__method__}\"", java_class: 'java.lang.String' } }
             if nil != _item[:ref]
               i = RubyXL::Reference.ref2ind(_item[:ref])
               @layout_sheet[i[0]][i[1]].change_contents(_item[:name])
