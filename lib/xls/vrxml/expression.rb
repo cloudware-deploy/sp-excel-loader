@@ -29,7 +29,7 @@ module Xls
     class Expression < Object
 
       PFV_EXPR = {
-        'param': Parameter.capture,
+        'parameter': Parameter.capture,
         'field': Field.capture,
         'variable': Variable.capture
       }
@@ -78,7 +78,7 @@ module Xls
         _exp = Vrxml::Expression.i_translate(expression: _exp, relationship: relationship, nce: nce, tracking: tracking)
         ( Vrxml::Expression.extract(expression: _exp) || [] ).each do | e |
           case e[:type]
-          when :param
+          when :parameter
             _ext << e
             # ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: Add possible MISSING parameter %s" % [e[:value]])
             # pfv ||=[]

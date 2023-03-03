@@ -157,7 +157,7 @@ module Xls
             expression, _extracted = Vrxml::Expression.translate(expression: element[:value], relationship: @relationship, nce: @nce)
             _extracted.each do | e |
               case e[:type]
-              when :param
+              when :parameter
                   pfv ||=[]
                   pfv << { ref: element[:hint], append: :parameters, type: e[:type], name: e[:value] }
               when :field

@@ -899,14 +899,13 @@ module Xls
                 ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: Add possible MISSING parameter %s" % [e[:value]])
               end
             else
-              raise "WTF?"
+              raise "#{e[:type]} - WTF?"
             end
           end
           # named cell
           ref = RubyXL::Reference.ind2ref(a_cell.row, a_cell.column)
           if false == @report.named_cells.include?(ref)
-            ap "TODO: add named cell ref"
-            require 'byebug' ; debugger
+            ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: add named cell ref %s" % [ ref ])
           end
           #
           rv = TextField.new(binding: binding)
@@ -920,7 +919,7 @@ module Xls
           binding = nil
           pattern = nil
           case _ext[0][:type]
-          when :param
+          when :parameter
             binding = @report.parameters[_ext[0][:value]] ? @report.parameters[_ext[0][:value]].binding : nil
             if nil != binding
               pattern = binding[:presentation]
@@ -984,7 +983,7 @@ module Xls
           f_id = element[:value]
           j_ks = nil # or 'java.lang.String'
           case element[:type]
-          when :param
+          when :parameter
             @report.add_parameter(id: f_id, name: f_id, java_class: j_ks)
           when :field
             @report.add_field(id: f_id, name: f_id, java_class: j_ks)
@@ -1075,14 +1074,14 @@ module Xls
             f_id = element[:value]
             j_ks = nil # or 'java.lang.String'
             case element[:type]
-            when :param
+            when :parameter
               @report.add_parameter(id: f_id, name: f_id, java_class: j_ks)
             when :field
               @report.add_field(id: f_id, name: f_id, java_class: j_ks)
             when :variable
               @report.add_variable(id: f_id, name: f_id, java_class: j_ks)
             else
-              raise "???"
+              raise "WTF ???"
             end
           end
         end
