@@ -121,7 +121,7 @@ module Xls
       #
       # @param to Local file URI.
       #
-      def convert(to:)
+      def convert(to: nil)
 
         read_all_tables()
 
@@ -268,9 +268,10 @@ module Xls
         #
         # WRITE
         #
-        File.write(to, document.to_xml( :indent => 2, :encoding => Encoding::UTF_8.to_s, :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML ))
+        xml = document.to_xml( :indent => 2, :encoding => Encoding::UTF_8.to_s, :save_with => Nokogiri::XML::Node::SaveOptions::AS_XML)
+        return to.nil? ? xml : File.write(to, xml)
       end
-      
+
       #
       # Convert to tables
       #
