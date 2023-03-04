@@ -22,6 +22,7 @@
 require 'rubyXL'
 require 'rubyXL/objects/ooxml_object'
 
+
 # Monkey patch to RubyXL
 module RubyXL
 
@@ -70,6 +71,7 @@ module RubyXL
     define_child_node(RubyXL::SortState)
     define_child_node(RubyXL::TableColumns)
     define_child_node(RubyXL::TableStyleInfo)
+
     define_element_name 'table'
     set_namespaces('http://schemas.openxmlformats.org/spreadsheetml/2006/main' => nil)
 
@@ -120,3 +122,13 @@ module RubyXL
   end
 
 end
+
+#
+# Make Sure RubyXL does not steal our patch for table loading
+#
+RubyXL::TableFile.send(:remove_const, 'REL_TYPE')
+RubyXL::TableFile.const_set('REL_TYPE', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/table-do-not-load')
+
+RubyXL::TableFile.send(:remove_const, 'CONTENT_TYPE')
+RubyXL::TableFile.const_set('CONTENT_TYPE', 'application/vnd.openxmlformats-officedocument.spreadsheetml.table-dont-load+xml')
+
