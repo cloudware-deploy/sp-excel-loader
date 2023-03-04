@@ -43,7 +43,7 @@ option_parser.parse!
 if nil == $args[:source]
   ::Xls::Vrxml::Log.ERROR(msg: "Missing 'source' argument!", exception: ArgumentError)
 end
-if ! File.exists?($args[:source])
+if ! File.exist?($args[:source])
   ::Xls::Vrxml::Log.ERROR(msg: "Invalid or missing source file '%s'!" % [ $args[:source] ], exception: ArgumentError)
 end
 
