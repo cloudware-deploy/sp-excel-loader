@@ -18,56 +18,52 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
 
-        class Parameter
+    class Parameter
 
-          attr_accessor :name
-          attr_accessor :java_class
-          attr_accessor :description
-          attr_accessor :default_value_expression
-          attr_accessor :is_for_prompting
+      attr_accessor :name
+      attr_accessor :java_class
+      attr_accessor :description
+      attr_accessor :default_value_expression
+      attr_accessor :is_for_prompting
 
-          def initialize (a_name, a_java_class = nil)
-            @name = a_name
-            @java_class   = a_java_class
-            @java_class ||= 'java.lang.String'
-            @description = nil
-            @default_value_expression = nil
-            @is_for_prompting = false
-          end
+      def initialize (a_name, a_java_class = nil)
+        @name = a_name
+        @java_class   = a_java_class
+        @java_class ||= 'java.lang.String'
+        @description = nil
+        @default_value_expression = nil
+        @is_for_prompting = false
+      end
 
-          def attributes
-            rv = Hash.new
-            rv['name']  = @name
-            rv['class'] = @java_class
-            rv['isForPrompting'] = false if @is_for_prompting == false
-            return rv
-          end
+      def attributes
+        rv = Hash.new
+        rv['name']  = @name
+        rv['class'] = @java_class
+        rv['isForPrompting'] = false if @is_for_prompting == false
+        return rv
+      end
 
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.parameter(attributes) {
-                unless @description.nil?
-                  xml.parameterDescription {
-                    xml.cdata @description
-                  }
-                end
-                unless @default_value_expression.nil?
-                  xml.defaultValueExpression {
-                    xml.cdata @default_value_expression
-                  }
-                end
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.parameter(attributes) {
+            unless @description.nil?
+              xml.parameterDescription {
+                xml.cdata @description
               }
             end
-          end
-
+            unless @default_value_expression.nil?
+              xml.defaultValueExpression {
+                xml.cdata @default_value_expression
+              }
+            end
+          }
         end
-
       end
+
     end
+
   end
 end

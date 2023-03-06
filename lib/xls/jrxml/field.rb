@@ -18,48 +18,43 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
 
-        class Field
+    class Field
 
-          attr_accessor :name
-          attr_accessor :java_class
-          attr_accessor :description
-          attr_accessor :default_value_expression
-          attr_accessor :is_for_prompting
+      attr_accessor :name
+      attr_accessor :java_class
+      attr_accessor :description
+      attr_accessor :default_value_expression
+      attr_accessor :is_for_prompting
 
-          def initialize (a_name, a_java_class = nil)
-            @name         = a_name
-            @java_class   = a_java_class
-            @java_class ||= 'java.lang.String'
-            @description  = nil
-          end
+      def initialize (a_name, a_java_class = nil)
+        @name         = a_name
+        @java_class   = a_java_class
+        @java_class ||= 'java.lang.String'
+        @description  = nil
+      end
 
-          def attributes
-            rv = Hash.new
-            rv['name']  = @name
-            rv['class'] = @java_class
-            return rv
-          end
+      def attributes
+        rv = Hash.new
+        rv['name']  = @name
+        rv['class'] = @java_class
+        return rv
+      end
 
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.field(attributes) {
-                unless @description.nil?
-                  xml.fieldDescription {
-                    xml.cdata @description
-                  }
-                end
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.field(attributes) {
+            unless @description.nil?
+              xml.fieldDescription {
+                xml.cdata @description
               }
             end
-          end
-
+          }
         end
-
       end
+
     end
   end
 end

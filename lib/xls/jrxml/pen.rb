@@ -18,80 +18,75 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
 
-        class Pen
+    class Pen
 
-          attr_accessor :line_width
-          attr_accessor :line_style
-          attr_accessor :line_color
+      attr_accessor :line_width
+      attr_accessor :line_style
+      attr_accessor :line_color
 
-          def initialize
-            @line_width = 1.0
-            @line_style = 'Solid'
-            @line_color = '#000000'
-          end
+      def initialize
+        @line_width = 1.0
+        @line_style = 'Solid'
+        @line_color = '#000000'
+      end
 
-          def attributes
-            rv = Hash.new
-            rv['lineWidth'] = @line_width unless @line_width.nil?
-            rv['lineStyle'] = @line_style unless @line_style.nil?
-            rv['lineColor'] = @line_color unless @line_color.nil?
-            return rv
-          end
+      def attributes
+        rv = Hash.new
+        rv['lineWidth'] = @line_width unless @line_width.nil?
+        rv['lineStyle'] = @line_style unless @line_style.nil?
+        rv['lineColor'] = @line_color unless @line_color.nil?
+        return rv
+      end
 
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.pen(attributes)
-            end
-          end
-
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.pen(attributes)
         end
+      end
 
-        class TopPen < Pen
+    end
 
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.topPen(attributes)
-            end
-          end
+    class TopPen < Pen
 
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.topPen(attributes)
         end
+      end
 
-        class LeftPen < Pen
+    end
 
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.leftPen(attributes)
-            end
-          end
+    class LeftPen < Pen
 
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.leftPen(attributes)
         end
+      end
 
-        class RightPen < Pen
+    end
 
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.rightPen(attributes)
-            end
-          end
+    class RightPen < Pen
 
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.rightPen(attributes)
         end
+      end
 
-        class BottomPen < Pen
+    end
 
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.bottomPen(attributes)
-            end
-          end
+    class BottomPen < Pen
 
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.bottomPen(attributes)
         end
-
       end
     end
+
   end
 end

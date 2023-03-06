@@ -18,62 +18,58 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
 
-        class Variable
+    class Variable
 
-          attr_accessor :name
-          attr_accessor :java_class
-          attr_accessor :calculation
-          attr_accessor :reset_type
-          attr_accessor :variable_expression
-          attr_accessor :initial_value_expression
-          attr_accessor :presentation
+      attr_accessor :name
+      attr_accessor :java_class
+      attr_accessor :calculation
+      attr_accessor :reset_type
+      attr_accessor :variable_expression
+      attr_accessor :initial_value_expression
+      attr_accessor :presentation
 
-          def initialize (a_name, a_java_class = nil)
-            @name         = a_name
-            @java_class   = a_java_class
-            @java_class ||= 'java.lang.String'
-            @calculation  = 'System'
-            @reset_type   = nil
-            @variable_expression = nil
-            @initial_value_expression = nil
-            @presentation = nil
-          end
+      def initialize (a_name, a_java_class = nil)
+        @name         = a_name
+        @java_class   = a_java_class
+        @java_class ||= 'java.lang.String'
+        @calculation  = 'System'
+        @reset_type   = nil
+        @variable_expression = nil
+        @initial_value_expression = nil
+        @presentation = nil
+      end
 
-          def attributes
-            rv = Hash.new
-            rv['name']        = @name
-            rv['class']       = @java_class
-            rv['calculation'] = @calculation
-            rv['resetType']   = @reset_type unless @reset_type.nil? or @reset_type == 'None'
-            rv['resetGroup']  = 'Group1' if @reset_type == 'Group'
-            return rv
-          end
+      def attributes
+        rv = Hash.new
+        rv['name']        = @name
+        rv['class']       = @java_class
+        rv['calculation'] = @calculation
+        rv['resetType']   = @reset_type unless @reset_type.nil? or @reset_type == 'None'
+        rv['resetGroup']  = 'Group1' if @reset_type == 'Group'
+        return rv
+      end
 
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.variable(attributes) {
-                unless @variable_expression.nil?
-                  xml.variableExpression {
-                    xml.cdata @variable_expression
-                  }
-                end
-                unless @initial_value_expression.nil?
-                  xml.initialValueExpression {
-                    xml.cdata @initial_value_expression
-                  }
-                end
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.variable(attributes) {
+            unless @variable_expression.nil?
+              xml.variableExpression {
+                xml.cdata @variable_expression
               }
             end
-          end
-
+            unless @initial_value_expression.nil?
+              xml.initialValueExpression {
+                xml.cdata @initial_value_expression
+              }
+            end
+          }
         end
-
       end
+
     end
+
   end
 end

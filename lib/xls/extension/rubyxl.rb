@@ -97,7 +97,7 @@ module RubyXL
       _r_id = "rId#{_t_n}"
       _target = "../tables/table#{_t_n}.xml"
       self.relationship_container.relationships << RubyXL::Relationship.new(id: _r_id, target: _target, type: ::RubyXL::Table::REL_TYPE)
-      
+
       table = RubyXL::Table.new(id: _t_n, name: name.to_underscore.upcase, ref: ref, display_name: name)
       table.table_columns = ::RubyXL::TableColumns.new(count: 3)
       columns.each do | column |
@@ -106,10 +106,10 @@ module RubyXL
       table.auto_filter = ::RubyXL::AutoFilter.new(ref: ref)
       table.table_style_info = RubyXL::TableStyleInfo.new(name: style)
       table.table_style_info.show_row_stripes = 1
-      
+
       self.table_parts ||= ::RubyXL::TableParts.new
       self.table_parts << ::RubyXL::TablePart.new(r_id: _r_id)
-      
+
       # this will generate a xl/tables/table<n>.xml
       self.generic_storage << table
     end

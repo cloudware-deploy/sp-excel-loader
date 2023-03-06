@@ -18,63 +18,57 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Xls
-      module Jrxml
+module Xls
+  module Jrxml
+    class Band
 
-        class Band
+      attr_accessor :children
+      attr_accessor :height
+      attr_accessor :split_type
+      attr_accessor :print_when_expression
+      attr_accessor :properties
+      attr_accessor :auto_float
+      attr_accessor :auto_stretch
+      attr_accessor :stretch_type
 
-          attr_accessor :children
-          attr_accessor :height
-          attr_accessor :split_type
-          attr_accessor :print_when_expression
-          attr_accessor :properties
-          attr_accessor :auto_float
-          attr_accessor :auto_stretch
-          attr_accessor :stretch_type
+      def initialize
+        @children              = Array.new
+        @height                = 18;
+        @split_type            = 'Prevent'
+        @print_when_expression = nil
+        @properties            = nil
+        @auto_stretch          = false
+        @auto_float            = false
+        @stretch_type          = nil
+      end
 
-          def initialize
-            @children              = Array.new
-            @height                = 18;
-            @split_type            = 'Prevent'
-            @print_when_expression = nil
-            @properties            = nil
-            @auto_stretch          = false
-            @auto_float            = false
-            @stretch_type          = nil
-          end
+      def attributes
+        rv = Hash.new
+        rv['height']    = @height
+        rv['splitType'] = @split_type
+        return rv
+      end
 
-          def attributes
-            rv = Hash.new
-            rv['height']    = @height
-            rv['splitType'] = @split_type
-            return rv
-          end
-
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.band(attributes) {
-                unless @properties.nil?
-                  @properties.each do |property|
-                    xml.property(property.attributes)
-                  end
-                end
-                unless @print_when_expression.nil?
-                  xml.printWhenExpression {
-                    xml.cdata @print_when_expression
-                  }
-                end
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.band(attributes) {
+            unless @properties.nil?
+              @properties.each do |property|
+                xml.property(property.attributes)
+              end
+            end
+            unless @print_when_expression.nil?
+              xml.printWhenExpression {
+                xml.cdata @print_when_expression
               }
             end
-            @children.each do |child|
-              child.to_xml(a_node.children.last)
-            end
-          end
-
+          }
         end
-
+        @children.each do |child|
+          child.to_xml(a_node.children.last)
+        end
       end
+
     end
   end
 end

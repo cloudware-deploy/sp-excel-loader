@@ -18,66 +18,61 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
+    class TextField < StaticText
 
-        class TextField < StaticText
+      attr_accessor :text_field_expression
+      attr_accessor :is_stretch_with_overflow
+      attr_accessor :is_blank_when_null
+      attr_accessor :evaluation_time
+      attr_accessor :pattern
+      attr_accessor :pattern_expression
+      attr_reader   :report_element
 
-          attr_accessor :text_field_expression
-          attr_accessor :is_stretch_with_overflow
-          attr_accessor :is_blank_when_null
-          attr_accessor :evaluation_time
-          attr_accessor :pattern
-          attr_accessor :pattern_expression
-          attr_reader   :report_element
-
-          def initialize (a_properties, a_pattern = nil, a_pattern_expression = nil)
-            super()
-            @text_field_expression     = nil
-            @is_blank_when_null        = nil
-            @is_stretch_with_overflow  = false
-            @evaluation_time           = nil
-            @pattern                   = a_pattern
-            @pattern_expression        = a_pattern_expression
-            @report_element.properties = a_properties
-          end
-
-          def attributes
-            rv = Hash.new
-            rv['isStretchWithOverflow'] = true if @is_stretch_with_overflow
-            rv['pattern']               = @pattern unless @pattern.nil?
-            rv['isBlankWhenNull']       = @is_blank_when_null unless @is_blank_when_null.nil?
-            rv['evaluationTime']        = @evaluation_time unless @evaluation_time.nil?
-            return rv
-          end
-
-          def to_xml (a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.textField(attributes)
-            end
-            @report_element.to_xml(a_node.children.last)
-            @box.to_xml(a_node.children.last) unless @box.nil?
-            if nil != @text_field_expression && @text_field_expression.length > 0
-              Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
-                xml.textFieldExpression {
-                  xml.cdata(@text_field_expression)
-                }
-              end
-            end
-            if nil != @pattern_expression && @pattern_expression.length > 0
-              Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
-                xml.patternExpression {
-                  xml.cdata(@pattern_expression)
-                }
-              end
-            end
-          end
-
-        end
-
+      def initialize (a_properties, a_pattern = nil, a_pattern_expression = nil)
+        super()
+        @text_field_expression     = nil
+        @is_blank_when_null        = nil
+        @is_stretch_with_overflow  = false
+        @evaluation_time           = nil
+        @pattern                   = a_pattern
+        @pattern_expression        = a_pattern_expression
+        @report_element.properties = a_properties
       end
+
+      def attributes
+        rv = Hash.new
+        rv['isStretchWithOverflow'] = true if @is_stretch_with_overflow
+        rv['pattern']               = @pattern unless @pattern.nil?
+        rv['isBlankWhenNull']       = @is_blank_when_null unless @is_blank_when_null.nil?
+        rv['evaluationTime']        = @evaluation_time unless @evaluation_time.nil?
+        return rv
+      end
+
+      def to_xml (a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.textField(attributes)
+        end
+        @report_element.to_xml(a_node.children.last)
+        @box.to_xml(a_node.children.last) unless @box.nil?
+        if nil != @text_field_expression && @text_field_expression.length > 0
+          Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
+            xml.textFieldExpression {
+              xml.cdata(@text_field_expression)
+            }
+          end
+        end
+        if nil != @pattern_expression && @pattern_expression.length > 0
+          Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
+            xml.patternExpression {
+              xml.cdata(@pattern_expression)
+            }
+          end
+        end
+      end
+
     end
+
   end
 end

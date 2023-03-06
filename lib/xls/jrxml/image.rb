@@ -18,49 +18,44 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
+    class Image < StaticText
 
-        class Image < StaticText
+      attr_accessor :image_expression
+      attr_accessor :h_align
+      attr_accessor :v_align
 
-          attr_accessor :image_expression
-          attr_accessor :h_align
-          attr_accessor :v_align
-
-          def initialize
-            super()
-            @scale_image      = 'RetainShape'
-            @h_align          = 'Center'
-            @v_align          = 'Middle'
-            @on_error_type    = 'Blank'
-            @image_expression = ''
-          end
-
-          def attributes
-            { scaleImage: @scale_image, hAlign: @h_align, vAlign: @v_align, onErrorType: @on_error_type }
-          end
-
-          def to_xml (a_node)
-            puts '======================================================================================='
-            puts "Image    = '#{@image_expression}'"
-
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.image(attributes)
-            end
-            @report_element.to_xml(a_node.children.last)
-            @box.to_xml(a_node.children.last) unless @box.nil?
-            Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
-              xml.imageExpression {
-                xml.cdata(@image_expression)
-              }
-            end
-          end
-
-        end
-
+      def initialize
+        super()
+        @scale_image      = 'RetainShape'
+        @h_align          = 'Center'
+        @v_align          = 'Middle'
+        @on_error_type    = 'Blank'
+        @image_expression = ''
       end
+
+      def attributes
+        { scaleImage: @scale_image, hAlign: @h_align, vAlign: @v_align, onErrorType: @on_error_type }
+      end
+
+      def to_xml (a_node)
+        puts '======================================================================================='
+        puts "Image    = '#{@image_expression}'"
+
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.image(attributes)
+        end
+        @report_element.to_xml(a_node.children.last)
+        @box.to_xml(a_node.children.last) unless @box.nil?
+        Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
+          xml.imageExpression {
+            xml.cdata(@image_expression)
+          }
+        end
+      end
+
     end
+
   end
 end

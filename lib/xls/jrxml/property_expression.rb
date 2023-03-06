@@ -18,33 +18,26 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
+    class PropertyExpression < Property
 
-        class PropertyExpression < Property
+      attr_accessor :name
+      attr_accessor :value
 
-          attr_accessor :name
-          attr_accessor :value
+      def initialize (a_name, a_value)
+        @name  = a_name
+        @value = a_value
+      end
 
-          def initialize (a_name, a_value)
-            @name  = a_name
-            @value = a_value
-          end
+      def attributes
+        { name: @name }
+      end
 
-          def attributes
-            { name: @name }
-          end
-
-          def to_xml(a_node)
-            Nokogiri::XML::Builder.with(a_node) do |xml|
-              xml.propertyExpression(attributes) { xml.cdata @value }
-            end
-          end
-
+      def to_xml(a_node)
+        Nokogiri::XML::Builder.with(a_node) do |xml|
+          xml.propertyExpression(attributes) { xml.cdata @value }
         end
-
       end
 
     end

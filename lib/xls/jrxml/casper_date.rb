@@ -18,37 +18,31 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
+    class CasperDate < CasperTextField
 
-        class CasperDate < CasperTextField
+      def initialize (a_generator, a_expression)
+        super(a_generator, a_expression)
+        a_generator.declare_expression_entities(a_expression)
 
-          def initialize (a_generator, a_expression)
-            super(a_generator, a_expression)
-            a_generator.declare_expression_entities(a_expression)
-
-            @casper_binding[:editable] = {
-                patch: {
-                  field: {
-                    pattern: 'yyyy-MM-dd'
-                  }
-                }                        
-              }            
-              
-            @casper_binding[:attachment] = {
-                type: 'datePicker',
-                version: 2
+        @casper_binding[:editable] = {
+            patch: {
+              field: {
+                pattern: 'yyyy-MM-dd'
               }
+            }
+          }
 
-            @text_field_expression = "DateFormat.parse(#{a_expression},\"yyyy-MM-dd\")"
-            @pattern_expression = '$P{i18n_date_format}'
-          end
+        @casper_binding[:attachment] = {
+            type: 'datePicker',
+            version: 2
+          }
 
-        end
-
+        @text_field_expression = "DateFormat.parse(#{a_expression},\"yyyy-MM-dd\")"
+        @pattern_expression = '$P{i18n_date_format}'
       end
+
     end
   end
 end

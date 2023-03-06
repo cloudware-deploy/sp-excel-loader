@@ -18,69 +18,64 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
+    class CasperCombo < CasperTextField
 
-        class CasperCombo < CasperTextField
+      def initialize (a_generator, a_expression)
+        super(a_generator, a_expression)
 
-          def initialize (a_generator, a_expression)
-            super(a_generator, a_expression)
-
-            if @binding.cc_field_name[0] != '['
-              field_name = @binding.cc_field_name
-              fields     = [ @binding.cc_field_id, @binding.cc_field_name ]
-            else
-              field_name = @binding.cc_field_name[1..-2]
-              fields     = @binding.cc_field_name[1..-2].split(',').each { |e| e.strip! }
-            end
-
-            if @binding.respond_to?(:html)
-              html = @binding.html
-            else
-              if fields.size == 1
-                html = "<div class=\"normal\"><div class=\"main\">[[#{fields[0]}]]</div></div>"
-              else
-                html = "<div class=\"normal\"><div class=\"left\">[[#{fields[0]}]]</div><div class=\"main\">[[#{fields[1]}]]</div></div>"
-              end
-            end
-
-            if @binding.respond_to?(:cc_field_patch) and @binding.cc_field_patch != ''
-              patch_name = @binding.cc_field_patch
-            else
-              patch_name = @binding.id[3..-2]
-            end
-
-            @casper_binding[:editable] = {
-                is: @binding.editable,
-                patch: {
-                  field: {
-                    type: @binding.java_class,
-                    name: patch_name
-                  }
-                }
-              }
-
-            @casper_binding[:attachment] = {
-                type: 'dropDownList',
-                version: 2,
-                controller: 'client',
-                route: @binding.uri,
-                display: fields,
-                html: html
-              }
-
-            if @binding.respond_to?(:allow_clear)
-              unless @binding.allow_clear.nil? or not @binding.allow_clear
-                @casper_binding[:attachment][:allowClear] = @binding.allow_clear
-              end
-            end
-
-          end
-
+        if @binding.cc_field_name[0] != '['
+          field_name = @binding.cc_field_name
+          fields     = [ @binding.cc_field_id, @binding.cc_field_name ]
+        else
+          field_name = @binding.cc_field_name[1..-2]
+          fields     = @binding.cc_field_name[1..-2].split(',').each { |e| e.strip! }
         end
+
+        if @binding.respond_to?(:html)
+          html = @binding.html
+        else
+          if fields.size == 1
+            html = "<div class=\"normal\"><div class=\"main\">[[#{fields[0]}]]</div></div>"
+          else
+            html = "<div class=\"normal\"><div class=\"left\">[[#{fields[0]}]]</div><div class=\"main\">[[#{fields[1]}]]</div></div>"
+          end
+        end
+
+        if @binding.respond_to?(:cc_field_patch) and @binding.cc_field_patch != ''
+          patch_name = @binding.cc_field_patch
+        else
+          patch_name = @binding.id[3..-2]
+        end
+
+        @casper_binding[:editable] = {
+            is: @binding.editable,
+            patch: {
+              field: {
+                type: @binding.java_class,
+                name: patch_name
+              }
+            }
+          }
+
+        @casper_binding[:attachment] = {
+            type: 'dropDownList',
+            version: 2,
+            controller: 'client',
+            route: @binding.uri,
+            display: fields,
+            html: html
+          }
+
+        if @binding.respond_to?(:allow_clear)
+          unless @binding.allow_clear.nil? or not @binding.allow_clear
+            @casper_binding[:attachment][:allowClear] = @binding.allow_clear
+          end
+        end
+
       end
+
     end
   end
 end

@@ -18,31 +18,25 @@
 # along with sp-excel-loader.  If not, see <http://www.gnu.org/licenses/>.
 #
 
-module Sp
-  module Excel
-    module Loader
-      module Jrxml
+module Xls
+  module Jrxml
+    class CasperRadioButton < CasperCheckbox
 
-        class CasperRadioButton < CasperCheckbox
-
-          def validation_regexp 
-            /\A\$RB{(\$[PFV]{.+}),(.+),(.+)}\z/
-          end
-
-          def attachment
-            'radioButton'
-          end
-          
-          #
-          # Radio Button: $RB{<field_name>,<unchecked>,<checked>}
-          #
-          def initialize (a_generator, a_expression)
-            super(a_generator, a_expression)
-          end
-
-        end
-
+      def validation_regexp 
+        /\A\$RB{(\$[PFV]{.+}),(.+),(.+)}\z/
       end
+
+      def attachment
+        'radioButton'
+      end
+
+      #
+      # Radio Button: $RB{<field_name>,<unchecked>,<checked>}
+      #
+      def initialize (a_generator, a_expression)
+        super(a_generator, a_expression)
+      end
+
     end
   end
 end
