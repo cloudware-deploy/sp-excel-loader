@@ -185,15 +185,6 @@ module Xls
           parameter.to_xml(@builder.doc.children[0])
         end
 
-        # TODO 2.0: remove?
-        # unless @query_string.nil?
-        #   Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
-        #     xml.queryString {
-        #       xml.cdata(@query_string)
-        #     }
-        #   end
-        # end
-
         #
         # WRITE FIELDS
         #

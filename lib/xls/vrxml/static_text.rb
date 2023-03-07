@@ -30,15 +30,20 @@ module Xls
       attr_accessor :box
       attr_accessor :attributes
 
-      def initialize(text:)
+      def initialize(text:, ref: nil, tracking: nil)
         @report_element = ReportElement.new
         @text           = text
         @box            = nil
         @attributes     = nil
+        @cell_reference = ref
+        @tracking       = tracking
       end
 
       def to_xml (a_node)
         Nokogiri::XML::Builder.with(a_node) do |xml|
+          if nil != @cell_reference && @cell_reference.length > 0
+            xml.comment(" #{@cell_reference} #{@tracking ? @tracking : '' } ")
+          end
           xml.staticText(attributes)
         end
         @report_element.to_xml(a_node.children.last)

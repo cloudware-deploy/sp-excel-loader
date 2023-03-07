@@ -158,8 +158,16 @@ module Xls
       #
       def self.get_sheet(named:, at:)
         at.worksheets.each do |ws|
-          if ws.sheet_name == named
-            return ws
+          if named.is_a?(Array)
+            named.each do | name |
+              if ws.sheet_name == name
+                return ws
+              end
+            end
+          else
+            if ws.sheet_name == named
+              return ws
+            end
           end
         end
         raise "Sheet #{named} NOT found!"
@@ -176,6 +184,9 @@ module Xls
       def self.get_named_cells_map(sheet:, at:)
         map   = Hash.new
         r_map = Hash.new
+        if nil == at.defined_names
+          return map, r_map
+        end
         ref_regexp = sheet.sheet_name + '!\$*([A-Z]+)\$*(\d+)'
         at.defined_names.each do |dn|
           next unless dn.local_sheet_id.nil?

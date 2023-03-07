@@ -82,14 +82,18 @@ module Xls
             while column < r_data.size do
               cell = nil
               # has value?
-              if nil != r_data[column].value
+              if nil != r_data[column] && nil != r_data[column].value
                 # sanitize
-                value = sanitize(r_data[column].value.strip)
+                if r_data[column].value.is_a?(String)
+                  value = sanitize(r_data[column].value.strip)
+                else
+                  value = r_data[column].value
+                end
                 # still valid?
-                if 0 != value.length                     
+                if nil != value && ( false == value.is_a?(String) || 0 != value.length )
                   # track
                   cell = { hint: RubyXL::Reference.new(row,column).to_s, row: row, column: column, value: value, comments: [] }
-                end                 
+                end
               end
               # collect comments
               if nil != cell 
@@ -137,7 +141,9 @@ module Xls
               if v2.is_a?(String)
                 _exp, _ext = Vrxml::Expression.translate(expression: v2, relationship: @relationship, nce: @nce)
                 if _ext.count > 0
-                  ::Xls::Vrxml::Log.TODO(msg: "@ #{__FILE__}:#{__LINE__} - #{__method__} : Add possible MISSING parameter(s)/field(s)/variable(s) %d" % [ _ext.count])
+                  _ext.each do | item |
+                    add_pfv_if_missing(type: item[:type], ref: nil, name: item[:value])
+                  end
                 end
                 t[:value][k2.to_sym] = _exp
               else
@@ -154,37 +160,50 @@ module Xls
 
             pfv = nil
             exp = nil
-            expression, _extracted = Vrxml::Expression.translate(expression: element[:value], relationship: @relationship, nce: @nce)
-            _extracted.each do | e |
-              case e[:type]
-              when :parameter
-                  pfv ||=[]
-                  pfv << { ref: element[:hint], append: :parameters, type: e[:type], name: e[:value] }
-              when :field
-                  pfv ||=[]
-                  pfv << { ref: element[:hint], append: :fields, type: e[:type], name: e[:value] }
-              when :variable
-                  pfv ||=[]
-                  pfv << { ref: element[:hint], append: :variables, type: e[:type], name: e[:value] }
-              else
-                  raise "???"
-              end
-            end # each
+
+            expression = element[:value]
+            if true == expression.is_a?(String) && ( m = expression.match(/\$SE\{(.*)\}/) )
+              expression = m[1]
+              tfe = true
+            else
+              tfe = false
+            end
+
+            if true ==  expression.is_a?(String)
+              expression, _extracted = Vrxml::Expression.translate(expression: expression, relationship: @relationship, nce: @nce)
+              _extracted.each do | e |
+                case e[:type]
+                when :parameter
+                    pfv ||=[]
+                    pfv << { ref: element[:hint], append: :parameters, type: e[:type], name: e[:value] }
+                when :field
+                    pfv ||=[]
+                    pfv << { ref: element[:hint], append: :fields, type: e[:type], name: e[:value] }
+                when :variable
+                    pfv ||=[]
+                    pfv << { ref: element[:hint], append: :variables, type: e[:type], name: e[:value] }
+                else
+                    raise "???"
+                end
+              end # each
+            end
 
             #
             if nil == pfv || pfv.count > 1
               pfv = nil
               exp = { ref: element[:hint] }
-              if ( m = expression.match(/\$SE\{(.*)\}/) )
-                exp[:properties] = [{ name: 'textFieldExpression', value: m[1] } ]
-                exp[:expression] = m[1].strip
+              if true == tfe
+                exp[:properties] = [{ name: 'textFieldExpression', value: expression } ]
               else
-                exp[:expression] = expression
+                exp[:properties] = [{ name: 'text', value: expression } ]
               end
+              exp[:expression] = expression
             else
-              if ( m = expression.match(/\$SE\{(.*)\}/) )
-                pfv[0][:properties] ||= []
-                pfv[0][:properties] = [{ name: 'textFieldExpression', value: m[1] } ]
+              pfv[0][:properties] ||= []
+              if true == tfe
+                pfv[0][:properties] = [{ name: 'textFieldExpression', value: expression } ]
+              else
+                pfv[0][:properties] = [{ name: 'text', value: expression } ]
               end
             end
 
@@ -194,13 +213,27 @@ module Xls
               property = nil
               case comment[:tag]
               when 'PT', 'pattern'
+                _exp, _ = Vrxml::Expression.translate(expression: comment[:value], relationship: @relationship, nce: @nce)
+                property = { name: 'pattern', value: _exp }
+              when 'AS' , 'autoStretch'
+                _exp, _ = Vrxml::Expression.translate(expression: comment[:value], relationship: @relationship, nce: @nce)
+                property = { name: 'autoStretch', value: _exp }
+              when 'PE' , 'printWhenExpression'
                 _exp, _ext = Vrxml::Expression.translate(expression: comment[:value], relationship: @relationship, nce: @nce)
                 if _ext.count > 0
-                  ::Xls::Vrxml::Log.TODO(msg: "@ #{__FILE__}:#{__LINE__} - #{__method__} : Add possible MISSING parameter(s)/field(s)/variable(s) %d" % [ _ext.count])
+                  _ext.each do | item |
+                    add_pfv_if_missing(type: item[:type], ref: RubyXL::Reference.new(comment[:row], comment[:column]).to_s, name: item[:value])
+                  end
                 end
-                property = { name: 'pattern', value: _exp }
+                property = { name: 'printWhenExpression', value: _exp }
+              when 'ET', 'evaluationTime'
+                property = { name: 'evaluationTime', value: _exp }
+              when 'BN', 'blankIfNull' 
+                property = { name: 'isBlankWhenNull', value: _exp }
               else
-                puts "tag: #{comment[:tag]}, value: #{comment[:value]}".red
+                # log
+                ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: process tag %s - %s" % [comment[:tag], comment[:value]])
+                # next
                 next
               end 
               # case
@@ -226,7 +259,7 @@ module Xls
               pfv.each do | _item |
                 _item[:properties] ||= [] 
                 _item[:properties] << { name: 'java_class', value: 'java.lang.String' }
-                @elements[:translated][_item[:append]] << { name: _item[:name], ref: _item[:ref] }
+                add_pfv_if_missing(type: _item[:append], ref: _item[:ref], name: _item[:value])
               end # pfv.each
             elsif nil != exp
               exp[:properties] ||= []
@@ -256,7 +289,9 @@ module Xls
       #
       def cleanup()
         @worksheet.change_column_width(0)
-        @worksheet.comments[0].comment_list.delete_if.with_index { |_, index| @cz_comments.include? index }
+        if @worksheet.comments.size > 0 && nil != @worksheet.comments[0].comment_list
+          @worksheet.comments[0].comment_list.delete_if.with_index { |_, index| @cz_comments.include? index }
+        end
       end
 
       private     
@@ -410,7 +445,9 @@ module Xls
                   if false == @map[:bands][:legacy][@band_type].include?(:printWhenExpression)
                       _exp, _ext = Vrxml::Expression.translate(expression: value, relationship: @relationship, nce: @nce)
                       if _ext.count > 0
-                        ::Xls::Vrxml::Log.TODO(msg: "@ #{__FILE__}:#{__LINE__} - #{__method__} : Add possible MISSING parameter(s)/field(s)/variable(s) %d" % [ _ext.count])
+                        _ext.each do | item |
+                          add_pfv_if_missing(type: item[:type], ref: RubyXL::Reference.new(comment.ref.row_range.begin, comment.ref.col_range.begin).to_s, name: item[:value])
+                        end
                       end
                       @map[:bands][:legacy][@band_type][:printWhenExpression] = _exp
                       @cz_comments << index
@@ -440,6 +477,40 @@ module Xls
           @empty_rows << row
         end
       end # process_row_tag
+
+      #
+      # Add a parameter/field/variable if missing.
+      #
+      # @param type One of parameter/field/variable.
+      # @param ref  Cell reference.
+      # @paeam name parameter/field/variable name.
+      #
+      def add_pfv_if_missing(type:, ref:, name:)
+        # ... translation ...
+        case type
+        when :parameter, :parameters
+          _type = :parameter
+        when :field, :fields
+          _type = :field
+        when :variable, :variables
+          _type = :variable
+        else
+          ::Xls::Vrxml::Log.ERROR(msg: "'%s'?" % [ type.to_s ], exception: ArgumentError)
+        end
+        # ... do NOT allow duplication ...
+        add = true
+        (@elements[:translated][_type] || []).each do | e |
+          if e[:value] == name
+            add = false
+            break;
+          end
+        end
+        # ... add?
+        if true == add
+          @elements[:translated][_type] ||= []
+          @elements[:translated][_type] << { name: name, __origin__: __method__, ref: ref }
+        end
+      end # add_if_missing
 
     end # of class 'Bands'
 

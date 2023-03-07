@@ -33,22 +33,18 @@ module Xls
 
       def initialize(uri:)
         super(uri)
-        @layout_sheet = ::Xls::Vrxml::Binding.get_sheet(named: 'Layout', at: @workbook)
+        # ... [B] consistency is not a requirement ... ...
+        @layout_sheet_name = Xls::Vrxml::Object.guess_layout_sheet(workbook: @workbook)
+        # ... [E] consistency is not a requirement ... ...        
+        @layout_sheet = ::Xls::Vrxml::Binding.get_sheet(named: @layout_sheet_name, at: @workbook)
         # collect 'legacy' data
-        @legacy_binding_sheet = ::Xls::Vrxml::Binding.get_sheet(named: 'Data binding', at: @workbook)
+        @legacy_binding_sheet = ::Xls::Vrxml::Binding.get_sheet(named: ['Data binding', 'Databinding'], at: @workbook)
         #
         @band_type = nil
       end
       
 
       def translate(to:)
-        # @comments = load_comments()
-        # @comments.each do | k, v |
-        # end
-        # if @layout_sheet.comments
-        #   @layout_sheet.comments.clear
-        # end
-
         #
         # Collect Data
         #
@@ -79,7 +75,7 @@ module Xls
           other:       ( ( @collector.bands.map[:other]  || {} ) [:translated] ).clone,
           named_cells: {}
         }
-                
+
         [:parameters, :fields, :variables ].each do | type |
           if ! @collector.bands.elements[:translated][type]
             next
@@ -89,15 +85,13 @@ module Xls
             if true == tables[type].include?(_item[:name])
               next
             end
-            tables[type][_item[:name]] = { name: _item[:name], value: { '__origin__': "\"#{__method__}\"", java_class: 'java.lang.String' } }
+            tables[type][_item[:name]] = { name: _item[:name], value: { '__origin__': ( _item[:__origin__] || "\"#{__method__}\"" ), java_class: 'java.lang.String' } }
             if nil != _item[:ref]
               i = RubyXL::Reference.ref2ind(_item[:ref])
               @layout_sheet[i[0]][i[1]].change_contents(_item[:name])
             end
           end
         end
-
-        # TODO 2.0: expressions or named cells
 
         @collector.bands.elements[:translated][:cells].each do | cell |
           i = RubyXL::Reference.ref2ind(cell[:ref])
@@ -111,9 +105,7 @@ module Xls
             end
           end
           tables[:named_cells][cell[:ref]] = value
-          # remove comment / notes
-          # TODO 2.0
-      end
+        end
 
         # add 'Binding' sheet
         @binding_sheet = @workbook.add_worksheet('Binding')
@@ -179,33 +171,10 @@ module Xls
           ])  
         end
 
-        # validate if 
-        # TODO 2.0: zero comments
-        # TODO 2.0: zero missing translations
+        # TODO 2.0: check if we have zero missing translations
 
         # done
         @workbook.save(to)
-      end
-
-      private
-
-      def load_comments()
-        @comments = {}
-        if nil == @layout_sheet.comments || 0 == @layout_sheet.comments.size || nil == @layout_sheet.comments[0].comment_list
-          return @comments
-        end
-        @layout_sheet.comments[0].comment_list.each do |comment|
-          next if nil == comment.text
-          lines = []
-          comment.text.to_s.lines.each do |text|
-            text.strip!
-            next if text == '' or text.nil?
-            lines << text
-          end
-          next if 0 == lines.count
-          @comments[comment.ref.to_s] = { lines: lines, obj: comment }
-        end
-        return @comments
       end
       
     end # of class 'Translator'

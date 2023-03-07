@@ -46,20 +46,43 @@ module Xls
       # Collect and translate 'Binding' data.
       #
       def collect ()
+        extracted = []
         # parameters
         @parameter[:legacy] = ::Xls::Vrxml::Binding.get_table(named: 'params_def', at: @worksheet, optional: true)
         if nil != @parameter[:legacy]
-          @parameter[:map], @parameter[:translated] = Binding.table_to_array(table: @parameter[:legacy], worksheet: @worksheet, relationship: @relationship, nce: @nce)
+          @parameter[:map], @parameter[:translated], _extracted = Binding.table_to_array(table: @parameter[:legacy], worksheet: @worksheet, relationship: @relationship, nce: @nce)
+          extracted.concat(_extracted)
         end
         # fields
         @fields[:legacy] = ::Xls::Vrxml::Binding.get_table(named: 'fields_def', at: @worksheet, optional: true)
         if nil != @fields[:legacy]
-          @fields[:map], @fields[:translated] = Binding.table_to_array(table: @fields[:legacy], worksheet: @worksheet, relationship: @relationship, nce: @nce)
+          @fields[:map], @fields[:translated], _extracted = Binding.table_to_array(table: @fields[:legacy], worksheet: @worksheet, relationship: @relationship, nce: @nce)
+          extracted.concat(_extracted)
         end
         # variables          
         @variables[:legacy] = ::Xls::Vrxml::Binding.get_table(named: 'variables_def', at: @worksheet, optional: true)
         if nil != @variables[:legacy]
-          @variables[:map], @variables[:translated] = Binding.table_to_array(table: @variables[:legacy], worksheet: @worksheet, relationship: @relationship, nce: @nce, alt_id: :name)
+          @variables[:map], @variables[:translated], _extracted = Binding.table_to_array(table: @variables[:legacy], worksheet: @worksheet, relationship: @relationship, nce: @nce, alt_id: :name)
+          extracted.concat(_extracted)
+        end
+        # 
+        extracted.each do | item |          
+          case item[:type]
+          when :parameter
+            if false == @parameter[:translated].include?(item[:value])
+              @parameter[:translated][item[:value]] = { name: item[:value], value: { __origin__: 'layout//auto' } }
+            end
+          when :field
+            if false == @fields[:translated].include?(item[:value])
+              @fields[:translated][item[:value]] = { name: item[:value], value: { __origin__: 'layout//auto' } }
+            end
+          when :variable
+            if false == @variables[:translated].include?(item[:value])
+              @variables[:translated][item[:value]] = { name: item[:value], value: { __origin__: 'layout//auto' } }
+            end
+          else
+            ::Xls::Vrxml::Log.ERROR(msg: "'%s'?" % [ item[:type].to_s ], exception: ArgumentError)
+          end
         end
       end # collect()
 
@@ -90,6 +113,7 @@ module Xls
         ::Xls::Vrxml::Binding.iterate_table(table: table, at: worksheet) do | row, cells |
           j = {}
           cells.each do | cell |
+            next if nil == cell 
             j[columns[cell.column].to_sym] = cell.value
           end
           if nil == j[:id] 
@@ -102,11 +126,12 @@ module Xls
           map[j[:id]] = j
         end
         # translate
+        extracted   = [] # parameters / fields / variables from expressions
         translation = {}
         map.each do | k, v |
           id, _ext = Vrxml::Expression.translate(expression: k, relationship: relationship, nce: nce)
           if _ext.count > 0
-            ::Xls::Vrxml::Log.TODO(msg: "@ #{__FILE__}:#{__LINE__} - #{__method__} : Add possible MISSING parameter(s)/field(s)/variable(s) %d" % [ _ext.count])
+            extracted.concat(_ext)
           end
           h = {}
           v.each do | k1, v1 |
@@ -114,7 +139,7 @@ module Xls
             if v1.is_a?(String) && [:name, :expression, :initial_expression].include?(k1)
               h[k1], _ext = Vrxml::Expression.translate(expression: v1, relationship: relationship, nce: nce)
               if _ext.count > 0
-                ::Xls::Vrxml::Log.TODO(msg: "@ #{__FILE__}:#{__LINE__} - #{__method__} : Add possible MISSING parameter(s)/field(s)/variable(s) %d" % [ _ext.count])
+                extracted.concat(_ext)
               end
             else
               h[k1] = v1
@@ -127,7 +152,7 @@ module Xls
           translation[id] = { name: id, value: h, updated_at: Time.now.utc.to_s }
         end
         # done
-        return map, translation
+        return map, translation, extracted
       end
 
     end # of class 'Binding'      

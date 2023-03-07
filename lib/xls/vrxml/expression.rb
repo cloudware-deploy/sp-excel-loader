@@ -70,7 +70,12 @@ module Xls
       # @return VRXML expression
       #
       def self.translate(expression:, relationship:, nce:, tracking: { file: __FILE__, line: __LINE__, method: __method__, caller: caller_locations(1,1)[0].base_label })
-        _exp = expression.strip
+              # # 
+        # if _ext.count > 0
+        #   _exp = Vrxml::Expression.sanitize(_exp)
+        # end
+
+        _exp = Vrxml::Expression.sanitize(expression.strip)
         _ext = []
         if 0 == _exp.length
           return _exp, _ext
@@ -98,6 +103,8 @@ module Xls
               raise "???"
           end # case
         end # each
+        # log
+        ::Xls::Vrxml::Log.TRANSLATION(from: expression, to: _exp, tracking: tracking)
         # done
         return _exp, _ext
       end
@@ -137,45 +144,46 @@ module Xls
             }
             error = true
             # TODO 2.0? is this ok ?
-            return "'#{expression}'"
+            return expression
           end
           rv = stdout.read.strip
           # no param/field/variable
           if 0 == rv.length
             rv = expression
-          end
-          # success or failure?
-          if expression != rv
-            # success, log
-            ::Xls::Vrxml::Log.TRANSLATION(from: expression, to: rv, tracking: tracking)
-          elsif expression == rv
-            # failure, try via replacement
-            rv = expression
-            LEGACY_EXP.each do | type, regex |
-              while ( data = regex.match(rv) ) do
-                case type
-                when :parameter
-                  rv = rv.gsub(data[0], "$['#{data[1]}']")
-                  error = false
-                when :field
-                  rv = rv.gsub(data[0], "$['#{relationship}'][index]['#{data[1]}']")
-                  error = false
-                when :variable
-                  rv = rv.gsub(data[0], "$.$$VARIABLES[index]['#{data[1]}']")
-                  error = false
-                else
-                end                
-              end
-            end # LEGACY_EXP
-            # log?
-            if false == error
-              ::Xls::Vrxml::Log.TRANSLATION(from: expression, to: rv, tracking: tracking)
-            end
-          end
-          # success
+          end                    
+          # done
           return rv
         end # popen3
       end      
+
+      #
+      # Sanitize a cell value.
+      #
+      # value Cell value to sanitize.
+      #
+      def self.sanitize(value)
+        # try to fix bad expressions
+        return value
+        if value.match(/^[^$"']/) && ( value.include?("$P{") || value.include?("$F{") || value.include?("$V{") || value.include?("$[") || value.include?("$.") || value.include?("$.$$V") )
+          _parts = value.split(' ')
+          if _parts.count > 1
+            _value = ''
+            _parts.each do | _part |
+              if _part.match(/^[$].*/) || _part.match(/^\(\$.*/)
+                _value += "+ #{_part} "
+              else
+                _value += "+ '#{_part} '"
+              end
+            end
+            if _value.length > 2
+              _value = _value[2..-1]
+            end
+            value = _value.strip
+          end # _parts.count > 1
+        end
+        # done
+        value
+      end
 
     end # class 'Expression'
 

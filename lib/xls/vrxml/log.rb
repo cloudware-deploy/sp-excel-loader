@@ -26,21 +26,22 @@ module Xls
 
     class Log
 
-      SHOW_INFO       = 0x001
-      SHOW_STATS      = 0x002
-      SHOW_PROPERTIES = 0x004
-      TABLES          = 0x008
-      EXTRACTION      = 0x010
-      TRANSLATIONS    = 0x020
-      STEPS           = 0x040
-      WARNINGS        = 0x080
-      ERRORS          = 0x100
-      TRACE           = 0x200
-      TODO            = 0x400
-      WHAT_IS         = 0x800
-      SHOW_V8_EXPR    = 0xFFF
+      SHOW_INFO       = 0x0001
+      SHOW_STATS      = 0x0002
+      SHOW_PROPERTIES = 0x0004
+      TABLES          = 0x0008
+      EXTRACTION      = 0x0010
+      TRANSLATIONS    = 0x0020
+      STEPS           = 0x0040
+      WARNINGS        = 0x0080
+      ERRORS          = 0x0100
+      TRACE           = 0x0200
+      TODO            = 0x0400
+      WHAT_IS         = 0x0800
+      DEBUG           = 0x1000
+      SHOW_V8_EXPR    = 0x0FFF
 
-      MASK           = SHOW_INFO | STEPS | WARNINGS | ERRORS | TODO | TRANSLATIONS
+      MASK           = SHOW_INFO | STEPS | WARNINGS | ERRORS | TODO | DEBUG # | TRANSLATIONS
       # | TABLES
       # | TRACE | TRANSLATIONS
 

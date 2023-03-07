@@ -38,7 +38,6 @@ module Xls
       attr_accessor :java_class
       attr_accessor :description
       attr_accessor :default_value_expression
-      # TODO AG: unused? attr_accessor :is_for_prompting
 
       attr_accessor :binding
 

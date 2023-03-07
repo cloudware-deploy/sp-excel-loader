@@ -129,9 +129,13 @@ module Xls
 
         @binding = ::Xls::Vrxml::Binding.new(workbook: @workbook)
         @binding.load()
-        @binding.map.each do | type, map |
+
+        @binding.map.each do | type, map |          
+
           # ... for all 'parameter/field/variable' ...
           map.each do | name, value |
+            # ... ignore 'empty lines' ...
+            next if '' == name
             # ... fetch binding ...
             binding = ::Xls::Vrxml::Binding.parse(type: type.to_s, value: value['Value'][:value] || "{\"__origin__\": \"#{__method__}\"}")
             case type
@@ -144,11 +148,7 @@ module Xls
             when :parameters
               @report.parameters[name] = Parameter.new(name: name, binding: binding)
             when :fields
-              if name.start_with?('$')
-                @report.fields[name] = Field.new(name: name, binding: binding)
-              else
-                puts "TODO: ${name}"
-              end
+              @report.fields[name] = Field.new(name: name, binding: binding)
             when :variables
               @report.variables[name] = Variable.new(name: name, binding: binding)
             when :bands
@@ -232,8 +232,12 @@ module Xls
           end # map
         end # @binding.map
 
+        # ... [B] consistency is not a requirement ... ...
+        @layout_sheet_name = Xls::Vrxml::Object.guess_layout_sheet(workbook: @workbook)
+        # ... [E] consistency is not a requirement ... ...
+
         # load named cells
-        @name2ref, @ref2name = ::Xls::Vrxml::Binding.get_named_cells_map(sheet: ::Xls::Vrxml::Binding.get_sheet(named: 'Layout', at: @workbook), at: @workbook)
+        @name2ref, @ref2name = ::Xls::Vrxml::Binding.get_named_cells_map(sheet: ::Xls::Vrxml::Binding.get_sheet(named: @layout_sheet_name, at: @workbook), at: @workbook)
         
 
         @not_converted_expressions = {}
@@ -261,7 +265,6 @@ module Xls
         #
         # TABLES
         #
-        # TODO 2.0
         @@xmlns = "http://jasperreports.sourceforge.net/jasperreports"
         document = Nokogiri::XML(@report.to_xml)
         convert_to_tables(xml: document, relationship: @relationship)
@@ -580,8 +583,7 @@ module Xls
       def parse_sheets
         @worksheet = nil
         @workbook.worksheets.each do |ws|
-          # TODO 2.0: multiple layout sheets in same workbook?
-          if 'Layout' != ws.sheet_name
+          if @layout_sheet_name != ws.sheet_name
             next
           end            
           @worksheet    = ws
@@ -593,7 +595,7 @@ module Xls
           end
           generate_bands()
         end
-        raise "'Layout' worksheet not found!" if nil == @worksheet
+        raise "#{@layout_sheet_name} worksheet not found!" if nil == @worksheet
       end
 
       def generate_bands ()
@@ -875,16 +877,44 @@ module Xls
         return false
       end
 
+      #
+      # Obtain a property for a specific cell
+      #
+      # @param ref Cell reference.
+      # @param property Symbol, property to read from binding table.
+      #
+      # @return Nil if not found.
+      #
+      def get_cell_binding_property(ref:, property:)
+        if false == @report.named_cells.include?(ref)
+          return nil
+        end
+        return @report.named_cells[ref][property]
+      end
+
       def create_field_legacy_mode (a_cell)
         f_id = nil
         rv  = nil
         binding = nil
         pattern = nil
-        _exp, _ext = Vrxml::Expression.translate(expression: a_cell.value.to_s, relationship: @relationship, nce: @nce)
-        if _ext.count > 1
-          # expression - not a single parameter/field/variable
 
-          # a) collect possible missing parameter/field/variable
+        # for debug
+        tracking = nil        
+        if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
+          tracking = Pathname.new(__FILE__).relative_path_from(Pathname.new(File.join(File.dirname(__FILE__), '../../..') )).to_s
+        end
+
+        # grab cell reference
+        _ref = RubyXL::Reference.ind2ref(a_cell.row, a_cell.column)
+        # sanitize
+        _exp = a_cell.value.to_s.strip
+        if ( m = _exp.match(/\$SE\{(.*)\}/) )
+          _exp = m[1]
+        end
+        # extract expression and related parameter(s)/field(s)/variable(s) ( if any )
+        _exp, _ext = Vrxml::Expression.translate(expression: _exp, relationship: @relationship, nce: @not_converted_expressions)
+        if _ext.count > 1
+          # expression - contains parameter(s)/field(s)/variable(s)
           _ext.each do | e |
             case e[:type]
             when :parameter
@@ -903,20 +933,14 @@ module Xls
               raise "#{e[:type]} - WTF?"
             end
           end
-          # named cell
-          ref = RubyXL::Reference.ind2ref(a_cell.row, a_cell.column)
-          if false == @report.named_cells.include?(ref)
-            ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: add named cell ref %s" % [ ref ])
+          # add text field element
+          patttern = get_cell_binding_property(ref: _ref, property: :pattern)
+          if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
+            tracking += ":#{__LINE__ + 2}"
           end
-          #
-          rv = TextField.new(binding: binding)
-          if ( m = _exp.match(/\$SE\{(.*)\}/) )
-            rv.text_field_expression = m[1]
-          else
-            rv.text_field_expression = _exp
-          end
+          rv = TextField.new(binding: binding, ref: _ref.to_s, text_field_expression: _exp, pattern: pattern, tracking: tracking)
         elsif 1 == _ext.count
-          # TODO: 2.0            
+          # expression: single parameter/field/variable
           binding = nil
           pattern = nil
           case _ext[0][:type]
@@ -938,32 +962,33 @@ module Xls
           else
               raise "???"
           end
-          rv = TextField.new(binding: binding)
-          if ( m = _exp.match(/\$SE\{(.*)\}/) )
-            rv.text_field_expression = m[1]
-          else
-            rv.text_field_expression = _exp
+          # add text field element
+          if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
+            tracking += ":#{__LINE__ + 2}"
           end
-          rv.pattern = pattern
+          rv = TextField.new(binding: binding, ref: _ref.to_s, text_field_expression: _exp, pattern: pattern, tracking: tracking)
         else        
           # basic text, no parameter(s)/field(s)/variable(s) or expression(s)
-          ref = RubyXL::Reference.ind2ref(a_cell.row, a_cell.column)
-          if @ref2name.include?(ref) && @report.named_cells.include?(@ref2name[ref])
-            binding = @report.named_cells[@ref2name[ref]]
+          # TODO 2.0 USE get_cell_binding_property?
+          if @ref2name.include?(_ref) && @report.named_cells.include?(@ref2name[_ref])
+            binding = @report.named_cells[@ref2name[_ref]]
             pattern = binding[:presentation]
+            ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: review @ #{__FILE__}:#{__LINE__} - use get_cell_binding_property?")
           end
-          rv = TextField.new(binding: binding)
-          if ( m = _exp.match(/\$SE\{(.*)\}/) )
-            rv.text_field_expression = m[1]
+          # add text field element
+          if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
+            tracking += ":#{__LINE__ + 2}"
+          end
+          if nil != pattern
+            rv = TextField.new(binding: binding, ref: _ref.to_s, text_field_expression: _exp, pattern: pattern, tracking: tracking)
           else
-            rv.text_field_expression = _exp
+            rv = StaticText.new(ref: _ref.to_s, text: _exp, tracking: tracking)
           end
         end
-        
-        # TODO: implement
+
+        # TODO 2.0: implement
         if !f_id.nil? && rv.is_a?(TextField)
-          print "TODO: implement\n".red
-          require 'byebug' ; debugger
+          ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: implement @ #{__FILE__}:#{__LINE__} - java.util.Date")
           if @widget_factory.java_class(f_id) == 'java.util.Date'
             rv.text_field_expression = "DateFormat.parse(#{rv.text_field_expression},\"yyyy-MM-dd\")"
             rv.pattern_expression = "$P{i18n_date_format}"

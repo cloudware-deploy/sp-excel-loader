@@ -24,7 +24,7 @@ module Xls
 
     class TextField < StaticText
 
-      attr_accessor :text_field_expression
+      attr_reader   :text_field_expression
       attr_accessor :is_stretch_with_overflow
       attr_accessor :is_blank_when_null
       attr_accessor :evaluation_time
@@ -32,7 +32,7 @@ module Xls
       attr_accessor :pattern_expression
       attr_reader   :report_element
 
-      def initialize (binding:)
+      def initialize (binding:, ref: nil, text_field_expression: nil, pattern: nil, tracking: nil)
         super(text: nil)
         @text_field_expression     = nil
         @is_blank_when_null        = nil
@@ -48,6 +48,10 @@ module Xls
           @pattern_expression        = nil
           @report_element.properties = nil
         end
+        @text_field_expression = text_field_expression
+        @cell_reference        = ref
+        @pattern               = pattern
+        @tracking              = tracking
       end
 
       def attributes
@@ -61,6 +65,9 @@ module Xls
 
       def to_xml (a_node)
         Nokogiri::XML::Builder.with(a_node) do |xml|
+          if nil != @cell_reference && @cell_reference.length > 0
+            xml.comment(" #{@cell_reference} #{@tracking ? @tracking : '' } ")
+          end  
           xml.textField(attributes)
         end
         @report_element.to_xml(a_node.children.last)

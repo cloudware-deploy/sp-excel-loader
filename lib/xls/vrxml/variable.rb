@@ -63,7 +63,6 @@ module Xls
       attr_accessor :reset_type
       attr_accessor :variable_expression
       attr_accessor :initial_value_expression
-      attr_accessor :presentation # TODO 2.0 : review usage
       
       attr_accessor :binding
 
@@ -83,7 +82,7 @@ module Xls
 
       def attributes
         rv = Hash.new
-        rv['name']        = @name.match(@@capture)[1]
+        rv['name']        = @name.match(@@capture)[2]
         rv['class']       = @java_class
         rv['calculation'] = @calculation
         rv['resetType']   = @reset_type unless @reset_type.nil? or @reset_type == 'None'
