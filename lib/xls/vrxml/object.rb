@@ -26,6 +26,23 @@ module Xls
 
     class Object
 
+      #
+      # Since consistency is not a requirement ... ... ...
+      #
+      def self.guess_layout_sheet(workbook:)
+        # ... [B] consistency is not a requirement ... ...  ...
+        ls_found = false
+        workbook.worksheets.each do |ws|
+          if 'layout' == ws.sheet_name.downcase
+            return  ws.sheet_name
+          end
+        end
+        if false == ls_found
+          return  workbook.worksheets[0].sheet_name
+        end
+        # ... [E] consistency is not a requirement ... ...  ...
+     end
+
     end # class 'Object'
 
   end # module 'Vrxml'
