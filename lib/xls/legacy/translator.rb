@@ -94,9 +94,10 @@ module Xls
         end
 
         @collector.bands.elements[:translated][:cells].each do | cell |
-          i = RubyXL::Reference.ref2ind(cell[:ref])
+          #
+          i = RubyXL::Reference.ref2ind(cell[:__cell__][:ref])
           # go to specific cell and patch it!
-          @layout_sheet[i[0]][i[1]].change_contents(cell[:expression])
+          @layout_sheet[i[0]][i[1]].change_contents(cell[:__cell__][:value])
           # add named cell binding info
           value = { name: cell[:ref], value: {}}
           if nil != cell[:properties]
