@@ -158,11 +158,10 @@ module Xls
                             'isFloatColumnFooter'              => @is_float_column_footer,
                             'dataSourceType' => @data_source_type
           ) {
-            xml.comment('created with xls2vexml ' + @generator_version)
+            xml.comment(" Created with xls2vrxml #{@generator_version} @ #{Time.now.utc.to_s} ")
           }
         end
 
-      
         #
         # WRITE STYLES
         #

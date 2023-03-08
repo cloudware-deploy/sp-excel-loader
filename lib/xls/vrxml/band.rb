@@ -34,7 +34,7 @@ module Xls
       attr_accessor :auto_stretch
       attr_accessor :stretch_type
       
-      def initialize(tag:)
+      def initialize(tag:, cell: nil)
         @tag                   = tag
         @children              = Array.new
         @height                = 18;
@@ -44,6 +44,7 @@ module Xls
         @auto_stretch          = false
         @auto_float            = false
         @stretch_type          = nil
+        @cell                  = cell
       end
 
       def attributes
@@ -55,6 +56,9 @@ module Xls
 
       def to_xml (a_node)
         Nokogiri::XML::Builder.with(a_node) do |xml|
+          if nil != @cell
+            xml.comment(" #{@tag} @ #{ @cell[:ref] || ''}")
+          end
           xml.band(attributes) {
             unless @properties.nil?
               @properties.each do |property|

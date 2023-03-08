@@ -95,17 +95,27 @@ module Xls
 
         @collector.bands.elements[:translated][:cells].each do | cell |
           #
-          i = RubyXL::Reference.ref2ind(cell[:__cell__][:ref])
+          _ref = cell[:__cell__][:ref]
+          i = RubyXL::Reference.ref2ind(_ref)
           # go to specific cell and patch it!
           @layout_sheet[i[0]][i[1]].change_contents(cell[:__cell__][:value])
           # add named cell binding info
-          value = { name: cell[:ref], value: {}}
+          value = { ref: _ref, value: {}}
           if nil != cell[:properties]
             cell[:properties].each do | property |
               value[:value][property[:name].to_sym] = property[:value]
             end
           end
-          tables[:named_cells][cell[:ref]] = value
+          if @collector.bands.named_cells.include?(_ref)
+            value[:name] = @collector.bands.named_cells[_ref]
+          end
+          value[:updated_at] ||= Time.now.utc.to_s
+          tables[:named_cells][_ref] = value
+        end
+
+        # set named cells
+        @collector.bands.named_cells.each do | ref, name |
+          @workbook.define_new_name(name, @layout_sheet.ref2abs(ref))
         end
 
         # add 'Binding' sheet
@@ -146,11 +156,11 @@ module Xls
             tables[definition[:key]].each do | _, v |
               r += 1
               _column = 0
-              v.each do | _, f |
-                if f.is_a?(Hash)
-                  @binding_sheet.add_cell(r , _column, f.to_json)
+              [:name, :value, :updated_at].each do | _c |
+                if v[_c].is_a?(Hash)
+                  @binding_sheet.add_cell(r , _column, v[_c].to_json)
                 else
-                  @binding_sheet.add_cell(r , _column, f.to_s)
+                  @binding_sheet.add_cell(r , _column, v[_c].to_s)
                 end
                 _column += 1
               end

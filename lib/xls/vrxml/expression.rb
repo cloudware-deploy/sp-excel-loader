@@ -70,12 +70,7 @@ module Xls
       # @return VRXML expression
       #
       def self.translate(expression:, relationship:, nce:, tracking: { file: __FILE__, line: __LINE__, method: __method__, caller: caller_locations(1,1)[0].base_label })
-              # # 
-        # if _ext.count > 0
-        #   _exp = Vrxml::Expression.sanitize(_exp)
-        # end
-
-        _exp = Vrxml::Expression.sanitize(expression.strip)
+        _exp = expression.strip
         _ext = []
         if 0 == _exp.length
           return _exp, _ext
@@ -83,24 +78,10 @@ module Xls
         _exp = Vrxml::Expression.i_translate(expression: _exp, relationship: relationship, nce: nce, tracking: tracking)
         ( Vrxml::Expression.extract(expression: _exp) || [] ).each do | e |
           case e[:type]
-          when :parameter
+          when :parameter, :field, :variable
             _ext << e
-            # ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: Add possible MISSING parameter %s" % [e[:value]])
-            # pfv ||=[]
-            # pfv << { ref: element[:hint], append: :parameters, type: e[:type], name: e[:value] }
-          when :field
-            _ext << e
-            # ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: Add possible MISSING field %s" % [e[:value]])
-            # pfv ||=[]
-            # pfv << { ref: element[:hint], append: :fields, type: e[:type], name: e[:value] }
-          when :variable
-            _ext << e
-            # ::Xls::Vrxml::Log.WARNING(msg: "@ #{__method__}: Add possible MISSING variable %s" % [e[:value]])
-            # @elements[:translated][:variables] << { name: e[:value], ref: "TODO", java_class: 'java.lang.Integer', initialValueExpression: 0 }
-            # pfv ||=[]
-            # pfv << { ref: element[:hint], append: :variables, type: e[:type], name: e[:value] }
           else
-              raise "???"
+            raise "???"
           end # case
         end # each
         # log
@@ -155,35 +136,6 @@ module Xls
           return rv
         end # popen3
       end      
-
-      #
-      # Sanitize a cell value.
-      #
-      # value Cell value to sanitize.
-      #
-      def self.sanitize(value)
-        # try to fix bad expressions
-        return value
-        if value.match(/^[^$"']/) && ( value.include?("$P{") || value.include?("$F{") || value.include?("$V{") || value.include?("$[") || value.include?("$.") || value.include?("$.$$V") )
-          _parts = value.split(' ')
-          if _parts.count > 1
-            _value = ''
-            _parts.each do | _part |
-              if _part.match(/^[$].*/) || _part.match(/^\(\$.*/)
-                _value += "+ #{_part} "
-              else
-                _value += "+ '#{_part} '"
-              end
-            end
-            if _value.length > 2
-              _value = _value[2..-1]
-            end
-            value = _value.strip
-          end # _parts.count > 1
-        end
-        # done
-        value
-      end
 
     end # class 'Expression'
 

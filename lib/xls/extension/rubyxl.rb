@@ -114,11 +114,31 @@ module RubyXL
       self.generic_storage << table
     end
 
+    def ref2abs(ref)
+      "#{self.sheet_name}!#{RubyXL::Reference.ref2abs(ref)}"
+    end
+
   end
 
   class TablePart < OOXMLObject
     define_relationship(:required => true)
     define_element_name 'tablePart'
+  end
+
+  class Reference
+
+    def self.ref2abs(ref)
+      row, col = RubyXL::Reference.ref2ind(ref)
+      str = ''
+      loop do
+        x = col % 26
+        str = ('A'.ord + x).chr + str
+        col = (col / 26).floor - 1
+        break if col < 0
+      end
+      "$#{str}$#{(row + 1).to_s}"
+    end
+
   end
 
 end

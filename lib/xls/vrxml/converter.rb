@@ -631,67 +631,73 @@ module Xls
 
       def process_row_tag (a_row, a_row_tag)
 
+        # grab cell info
+        cell = { ref: RubyXL::Reference.ind2ref(a_row, 1).to_s }
+        if @ref2name.include?(cell[:ref]) && @report.named_cells.include?(@ref2name[cell[:ref]])
+          cell[:name] = @ref2name[cell[:ref]]
+        end
+
         case a_row_tag
         when /CasperBinding:*/
           @use_casper_bindings = a_row_tag.split(':')[1].strip == 'true'
         when /BG\d*:/
           @report.background ||= Background.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.background.bands << @current_band
           @band_type = a_row_tag
         when /TL\d*:/
           @report.title ||= Title.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.title.bands << @current_band
           @band_type = a_row_tag
         when /PH\d*:/
           @report.page_header ||= PageHeader.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.page_header.bands << @current_band
           @band_type = a_row_tag
         when /CH\d*:/
           @report.column_header ||= ColumnHeader.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.column_header.bands << @current_band
           @band_type = a_row_tag
         when /DT\d*/
           @report.detail ||= Detail.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.detail.bands << @current_band
           @band_type = a_row_tag
         when /CF\d*:/
           @report.column_footer ||= ColumnFooter.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.column_footer.bands << @current_band
           @band_type = a_row_tag
         when /PF\d*:/
           @report.page_footer ||= PageFooter.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.page_footer.bands << @current_band
           @band_type = a_row_tag
         when /LPF\d*:/
           @report.last_page_footer ||= LastPageFooter.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.last_page_footer.bands << @current_band
           @band_type = a_row_tag
         when /SU\d*:/
           @report.summary ||= Summary.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.summary.bands << @current_band
           @band_type = a_row_tag
         when /ND\d*:/
           @report.no_data ||= NoData.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.no_data.bands << @current_band
           @band_type = a_row_tag
         when /GH\d*:/
           @report.group ||= Group.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.group.group_header.bands << @current_band
           @band_type = a_row_tag
         when /GF\d*:/
           @report.group ||= Group.new
-          @current_band = Band.new(tag: a_row_tag)
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.group.group_footer.bands << @current_band
           @band_type = a_row_tag
         when /Id:.+/i
@@ -889,7 +895,7 @@ module Xls
         if false == @report.named_cells.include?(ref)
           return nil
         end
-        return @report.named_cells[ref][property]
+        return @report.named_cells[ref], @report.named_cells[ref][property]
       end
 
       def create_field_legacy_mode (a_cell)
@@ -903,9 +909,14 @@ module Xls
         if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
           tracking = Pathname.new(__FILE__).relative_path_from(Pathname.new(File.join(File.dirname(__FILE__), '../../..') )).to_s
         end
-
         # grab cell reference
         _ref = RubyXL::Reference.ind2ref(a_cell.row, a_cell.column)
+        #
+        cell = { ref: _ref.to_s }
+        # basic text, no parameter(s)/field(s)/variable(s) or expression(s)
+        if @ref2name.include?(_ref) && @report.named_cells.include?(@ref2name[_ref])
+          cell[:name] = @ref2name[_ref]
+        end
         # sanitize
         _exp = a_cell.value.to_s.strip
         if ( m = _exp.match(/\$SE\{(.*)\}/) )
@@ -934,11 +945,11 @@ module Xls
             end
           end
           # add text field element
-          patttern = get_cell_binding_property(ref: _ref, property: :pattern)
+          binding, patttern = get_cell_binding_property(ref: _ref, property: :pattern)
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
             tracking += ":#{__LINE__ + 2}"
           end
-          rv = TextField.new(binding: binding, ref: _ref.to_s, text_field_expression: _exp, pattern: pattern, tracking: tracking)
+          rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
         elsif 1 == _ext.count
           # expression: single parameter/field/variable
           binding = nil
@@ -966,23 +977,20 @@ module Xls
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
             tracking += ":#{__LINE__ + 2}"
           end
-          rv = TextField.new(binding: binding, ref: _ref.to_s, text_field_expression: _exp, pattern: pattern, tracking: tracking)
+          rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
         else        
           # basic text, no parameter(s)/field(s)/variable(s) or expression(s)
-          # TODO 2.0 USE get_cell_binding_property?
           if @ref2name.include?(_ref) && @report.named_cells.include?(@ref2name[_ref])
-            binding = @report.named_cells[@ref2name[_ref]]
-            pattern = binding[:presentation]
-            ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: review @ #{__FILE__}:#{__LINE__} - use get_cell_binding_property?")
+            binding, patttern = get_cell_binding_property(ref: @ref2name[_ref], property: :presentation)
           end
           # add text field element
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
-            tracking += ":#{__LINE__ + 2}"
+            tracking += ":#{__LINE__ + ( nil != pattern ? 2 : 4 )}"
           end
           if nil != pattern
-            rv = TextField.new(binding: binding, ref: _ref.to_s, text_field_expression: _exp, pattern: pattern, tracking: tracking)
+            rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
           else
-            rv = StaticText.new(ref: _ref.to_s, text: _exp, tracking: tracking)
+            rv = StaticText.new(cell: cell, text: _exp, tracking: tracking)
           end
         end
 

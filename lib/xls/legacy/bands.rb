@@ -25,8 +25,9 @@ module Xls
 
     class Bands < TheCollector
 
-      attr_accessor :map
-      attr_accessor :elements
+      attr_reader :map
+      attr_reader :elements
+      attr_reader :named_cells
 
       #
       # Initialize a 'Bands' collector.
@@ -41,7 +42,9 @@ module Xls
         @map[:other] = { legacy: { report: {}, group: {}, other:{}, unused: {} } }
         @empty_rows  = [] 
         @cz_comments = []
-        @elements    = { legacy: {}, translated: { fields: [], parameters: [], variables: [], cells:[] } }
+        @elements    = { legacy: {}, translated: { parameters: [], fields: [], variables: [], cells:[] } }
+        @auto_naming = { parameters: {}, fields: {}, variables: {}, expressions:{} }
+        @named_cells = {}
       end
           
       #
@@ -83,9 +86,8 @@ module Xls
               cell = nil
               # has value?
               if nil != r_data[column] && nil != r_data[column].value
-                # sanitize
                 if r_data[column].value.is_a?(String)
-                  value = sanitize(r_data[column].value.strip)
+                  value = r_data[column].value.strip
                 else
                   value = r_data[column].value
                 end
@@ -172,7 +174,9 @@ module Xls
               else
                 exp[:properties] = [{ name: 'text', value: expression } ]
               end
-              exp[:__cell__] = { ref: exp[:ref] , value: expression }
+              @auto_naming[:expressions][band] ||= {}
+              exp[:__cell__] = { ref: exp[:ref] , value: expression, name: "#{band.to_s.gsub(':', '').upcase}_EXPRESSION_#{@auto_naming[:expressions][band].count + 1}" }
+              @auto_naming[:expressions][band][exp[:__cell__][:ref]] = exp[:__cell__][:name]
             else
               pfv[0][:properties] ||= []
               if true == tfe
@@ -180,7 +184,10 @@ module Xls
               else
                 pfv[0][:properties] = [{ name: 'text', value: expression } ]
               end
-              pfv[0][:__cell__] = { ref: pfv[0][:ref] , value: expression }
+              pfv_pkey = ( pfv[0][:type].to_s + 's' ).to_sym
+              @auto_naming[pfv_pkey][band] ||= {}
+              pfv[0][:__cell__] = { ref: pfv[0][:ref] , value: expression, name: "#{band.to_s.gsub(':', '').upcase}_#{pfv[0][:type].to_s.upcase}_#{@auto_naming[pfv_pkey][band].count}" }
+              @auto_naming[pfv_pkey][band][pfv[0][:__cell__][:ref]] = pfv[0][:__cell__][:name]
             end
 
             # comments 2 fields or expr
@@ -284,6 +291,14 @@ module Xls
           @map[:other][k] = v
         end # o.each
 
+        # @auto_naming -> @named_cells
+        @auto_naming.each do | type, values |
+          values.each do | band, map |
+            map.each do | ref, name |
+              @named_cells[ref] = name
+            end
+          end
+        end
       end # collect
 
       #
@@ -296,35 +311,7 @@ module Xls
         end
       end
 
-      private     
-
-      #
-      # Sanitize a cell value.
-      #
-      # value Cell value to sanitize.
-      #
-      def sanitize(value)
-        # try to fix bad expressions
-        if value.match(/^[^$"']/) && ( value.include?("$P{") || value.include?("$F{") || value.include?("$V{") || value.include?("$[") || value.include?("$.") || value.include?("$.$$V") )
-          _parts = value.split(' ')
-          if _parts.count > 1
-            _value = ''
-            _parts.each do | _part |
-              if _part.match(/^[$].*/) || _part.match(/^\(\$.*/)
-                _value += "+ #{_part} "
-              else
-                _value += "+ '#{_part} '"
-              end
-            end
-            if _value.length > 2
-              _value = _value[2..-1]
-            end
-            value = _value.strip
-          end # _parts.count > 1
-        end
-        # done
-        value
-      end
+      private
 
       def map_row_tag(tag:, allow_sub_bands: true)
         unless allow_sub_bands
