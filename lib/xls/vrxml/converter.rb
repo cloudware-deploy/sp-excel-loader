@@ -930,15 +930,15 @@ module Xls
             case e[:type]
             when :parameter
               if false == @report.parameters.include?(e[:value])
-                @report.add_parameter(id: e[:value], name: e[:value], java_class: nil)
+                # @report.add_parameter(id: e[:value], name: e[:value], java_class: nil)
               end
             when :field
               if false == @report.fields.include?(e[:value])
-                @report.add_field(id: e[:value], name: e[:value], java_class: nil)
+                # @report.add_field(id: e[:value], name: e[:value], java_class: nil)
               end
             when :variable
               if false == @report.variables.include?(e[:value])
-                @report.add_variable(id: e[:value], name: e[:value], java_class: nil)
+                # @report.add_variable(id: e[:value], name: e[:value], java_class: nil)
               end
             else
               raise "#{e[:type]} - WTF?"
