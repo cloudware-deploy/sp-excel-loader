@@ -891,11 +891,45 @@ module Xls
       #
       # @return Nil if not found.
       #
-      def get_cell_binding_property(ref:, property:)
+      def get_binding_property_for_ref_or_named_cell(ref:, property:)
         if false == @report.named_cells.include?(ref)
           return nil
         end
         return @report.named_cells[ref], @report.named_cells[ref][property]
+      end
+
+      #
+      # Obtain a property for a specific parameter/field/variable
+      #
+      # @param type One of parameter/field/variable
+      # @param named parameter/field/variable name
+      # @param cell cell info
+      #
+      # @return Nil if not found.
+      #
+      def get_binding_and_pattern_for_pfv(type:, named:, cell:)
+        case type
+        when :parameter
+          binding = @report.parameters[named] ? @report.parameters[named].binding : nil
+        when :field
+          binding = @report.fields[named] ? @report.fields[named].binding : nil
+        when :variable
+          binding = @report.variables[named] ? @report.variables[named].binding : nil
+        else
+            raise "???"
+        end
+        # override with named cell?
+        if nil != cell && nil != cell[:name]
+          binding, patttern = get_binding_property_for_ref_or_named_cell(ref: cell[:name], property: :presentation)            
+        end
+        # patch binding?
+        if nil != binding && true == binding.include?(:presentation)
+          binding = binding.clone
+          binding[:pattern] = binding.delete(:presentation)
+          pattern = binding[:pattern]
+        end
+        # done
+        return binding, pattern 
       end
 
       def create_field_legacy_mode (a_cell)
@@ -930,49 +964,29 @@ module Xls
             case e[:type]
             when :parameter
               if false == @report.parameters.include?(e[:value])
-                # @report.add_parameter(id: e[:value], name: e[:value], java_class: nil)
+                @report.add_parameter(id: e[:value], name: e[:value], java_class: nil)
               end
             when :field
               if false == @report.fields.include?(e[:value])
-                # @report.add_field(id: e[:value], name: e[:value], java_class: nil)
+                @report.add_field(id: e[:value], name: e[:value], java_class: nil)
               end
             when :variable
               if false == @report.variables.include?(e[:value])
-                # @report.add_variable(id: e[:value], name: e[:value], java_class: nil)
+                @report.add_variable(id: e[:value], name: e[:value], java_class: nil)
               end
             else
               raise "#{e[:type]} - WTF?"
             end
           end
           # add text field element
-          binding, patttern = get_cell_binding_property(ref: _ref, property: :pattern)
+          binding, patttern = get_binding_property_for_ref_or_named_cell(ref: _ref, property: :pattern)
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
             tracking += ":#{__LINE__ + 2}"
           end
           rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
         elsif 1 == _ext.count
           # expression: single parameter/field/variable
-          binding = nil
-          pattern = nil
-          case _ext[0][:type]
-          when :parameter
-            binding = @report.parameters[_ext[0][:value]] ? @report.parameters[_ext[0][:value]].binding : nil
-            if nil != binding
-              pattern = binding[:presentation]
-            end
-          when :field
-            binding = @report.fields[_ext[0][:value]] ? @report.fields[_ext[0][:value]].binding : nil
-            if nil != binding
-              pattern = binding[:presentation]
-            end
-          when :variable
-            binding = @report.variables[_ext[0][:value]] ? @report.variables[_ext[0][:value]].binding : nil
-            if nil != binding
-              pattern = binding[:presentation]
-            end
-          else
-              raise "???"
-          end
+          binding, pattern = get_binding_and_pattern_for_pfv(type: _ext[0][:type], named: _ext[0][:value], cell: cell)
           # add text field element
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
             tracking += ":#{__LINE__ + 2}"
@@ -981,7 +995,7 @@ module Xls
         else        
           # basic text, no parameter(s)/field(s)/variable(s) or expression(s)
           if @ref2name.include?(_ref) && @report.named_cells.include?(@ref2name[_ref])
-            binding, patttern = get_cell_binding_property(ref: @ref2name[_ref], property: :presentation)
+            binding, patttern = get_binding_property_for_ref_or_named_cell(ref: @ref2name[_ref], property: :presentation)
           end
           # add text field element
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
@@ -991,6 +1005,18 @@ module Xls
             rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
           else
             rv = StaticText.new(cell: cell, text: _exp, tracking: tracking)
+          end
+        end
+
+        # shitstorm avoidance area
+        if nil != rv && rv.is_a?(TextField)
+          # "fix" f*ed up exploration_map.vpdf.xlsx and similar?
+          if 1 == _ext.count && nil != rv.report_element && nil != rv.report_element.print_when_expression
+            # apply fix
+            case binding[:java_class]
+            when 'java.lang.String'
+              rv.report_element.print_when_expression = "null != #{rv.report_element.print_when_expression}"
+            end
           end
         end
 

@@ -39,7 +39,7 @@ module Xls
         @is_stretch_with_overflow  = false
         @evaluation_time           = nil
         if nil != binding
-          @pattern                   = binding[:pattern]
+          @pattern                   = pattern || binding[:pattern]
           @pattern_expression        = binding[:pattern_expression]
           @report_element.properties = binding[:properties]
           @report_element.print_when_expression = binding[:printWhenExpression]

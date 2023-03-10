@@ -77,7 +77,6 @@ module Xls
         @reset_type               = @binding[:reset]              || @binding[:reset_type]
         @variable_expression      = @binding[:expression]         || @binding[:variable_expression]
         @initial_value_expression = @binding[:initial_expression] || @binding[:initial_value_expression]
-        @presentation             = @binding[:presentation]
       end
 
       def attributes

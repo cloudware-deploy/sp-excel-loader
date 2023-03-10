@@ -248,7 +248,7 @@ module Xls
         
         parameter = Parameter.new(name: name, java_class: java_class)
 
-        Vrxml::Log.TODO(msg: "#{__method__} called from #{caller} - NEEDS REVIEW")
+        Vrxml::Log.TODO(msg: "#{__method__} (id: #{id}, name:#{name}, ...) called from #{caller} - NEEDS REVIEW")
 
         # if @bindings.has_key? id
         #   binding = @bindings[id]
@@ -275,7 +275,7 @@ module Xls
           return
         end
         
-        Vrxml::Log.TODO(msg: "#{__method__} called from #{caller} - NEEDS REVIEW")
+        Vrxml::Log.TODO(msg: "#{__method__} (id: #{id}, name:#{name}, ...) called from #{caller} - NEEDS REVIEW")
 
         @fields[name] = Field.new(name: name, java_class: java_class)
       end
@@ -288,13 +288,14 @@ module Xls
       # @param caller For debug purpose only.
       #
       def add_variable(id:, name:, java_class:, caller: caller_locations(1,1)[0].base_label)
-        if "PAGE_NUMBER" == name || @report.variables.has_key?(name)
+
+        if "PAGE_NUMBER" == name || @variables.has_key?(name)
           return
         end
 
-        Vrxml::Log.TODO(msg: "#{__method__} called from #{caller} - NEEDS REVIEW")
+        Vrxml::Log.TODO(msg: "#{__method__} (id: #{id}, name:#{name}, ...) called from #{caller} - NEEDS REVIEW")
 
-        @report.variables[name] = Variable.new(name: name, java_class: java_class)
+        @variables[name] = Variable.new(name: name, java_class: java_class)
       end
 
       #

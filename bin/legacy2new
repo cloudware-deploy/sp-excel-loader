@@ -56,7 +56,8 @@ if $args[:source].include?('.pdf.xlsx')
 else
   dst_xlsx = File.join(dst_xlsx, File.basename($args[:source]).sub('.xlsx', '.vpdf.xlsx'))
 end
-dst_vrxml = dst_xlsx.sub('.vpdf.xlsx', '.vpdf.vrxml')
+
+dst_vrxml = dst_xlsx.sub('.vpdf.xlsx', '.vrxml')
 
 #
 # 0) Present
