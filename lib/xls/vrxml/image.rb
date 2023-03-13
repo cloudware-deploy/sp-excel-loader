@@ -28,13 +28,13 @@ module Xls
       attr_accessor :h_align
       attr_accessor :v_align
 
-      def initialize
-        super()
+      def initialize(binding:, image_expression: nil, cell: nil, tracking: nil)
+        super(text: nil, cell: cell, tracking: tracking)
         @scale_image      = 'RetainShape'
         @h_align          = 'Center'
         @v_align          = 'Middle'
         @on_error_type    = 'Blank'
-        @image_expression = ''
+        @image_expression = image_expression || binding[:imageExpression] || ''
       end
 
       def attributes

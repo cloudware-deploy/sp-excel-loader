@@ -41,6 +41,12 @@ module Xls
         @legacy_binding_sheet = ::Xls::Vrxml::Binding.get_sheet(named: ['Data binding', 'Databinding'], at: @workbook)
         #
         @band_type = nil
+        #
+        @hammer     = nil
+        @hammer_uri = uri + ".json"
+        if File.exist?(@hammer_uri)
+          @hammer = JSON.parse(File.read(@hammer_uri), symbolize_names: true)
+        end
       end
       
 
@@ -48,7 +54,7 @@ module Xls
         #
         # Collect Data
         #
-        @collector = Collector.new(layout: @layout_sheet, binding: @legacy_binding_sheet)
+        @collector = Collector.new(layout: @layout_sheet, binding: @legacy_binding_sheet, hammer: @hammer)
         
         @collector.bands.collect()
         @collector.bands.cleanup()
@@ -108,8 +114,17 @@ module Xls
           end
           if @collector.bands.named_cells.include?(_ref)
             value[:name] = @collector.bands.named_cells[_ref]
+            # inject missing properties
+            if nil != tables[cell[:append]] && nil != tables[cell[:append]][cell[:name]] && nil != tables[cell[:append]][cell[:name]][:value]
+              tables[cell[:append]][cell[:name]][:value].each do | k, v |
+                if false == value[:value].include?(k)                  
+                  value[:value][k] = v
+                end
+              end
+            end
           end
           value[:updated_at] ||= Time.now.utc.to_s
+          # done
           tables[:named_cells][_ref] = value
         end
 

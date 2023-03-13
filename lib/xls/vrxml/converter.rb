@@ -955,6 +955,9 @@ module Xls
         _exp = a_cell.value.to_s.strip
         if ( m = _exp.match(/\$SE\{(.*)\}/) )
           _exp = m[1]
+          _tfe = true
+        else
+          _tfe = false
         end
         # extract expression and related parameter(s)/field(s)/variable(s) ( if any )
         _exp, _ext = Vrxml::Expression.translate(expression: _exp, relationship: @relationship, nce: @not_converted_expressions)
@@ -983,7 +986,11 @@ module Xls
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
             tracking += ":#{__LINE__ + 2}"
           end
-          rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
+          if nil != binding && true == binding.include?(:imageExpression)
+            rv = Image.new(binding: binding, cell: cell, tracking: tracking)
+          else
+            rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
+          end
         elsif 1 == _ext.count
           # expression: single parameter/field/variable
           binding, pattern = get_binding_and_pattern_for_pfv(type: _ext[0][:type], named: _ext[0][:value], cell: cell)
@@ -991,7 +998,11 @@ module Xls
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
             tracking += ":#{__LINE__ + 2}"
           end
-          rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
+          if nil != binding && true == binding.include?(:imageExpression)
+            rv = Image.new(binding: binding, cell: cell, tracking: tracking)
+          else
+            rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
+          end
         else        
           # basic text, no parameter(s)/field(s)/variable(s) or expression(s)
           if @ref2name.include?(_ref) && @report.named_cells.include?(@ref2name[_ref])
@@ -1001,10 +1012,14 @@ module Xls
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
             tracking += ":#{__LINE__ + ( nil != pattern ? 2 : 4 )}"
           end
-          if nil != pattern
-            rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
+          if nil != binding && true == binding.include?(:imageExpression)
+            rv = Image.new(binding: binding, cell: cell, tracking: tracking)
           else
-            rv = StaticText.new(cell: cell, text: _exp, tracking: tracking)
+            if nil != pattern
+              rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
+            else
+              rv = StaticText.new(cell: cell, text: _exp, tracking: tracking)
+            end
           end
         end
 

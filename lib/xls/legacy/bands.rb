@@ -139,11 +139,17 @@ module Xls
             exp = nil
 
             expression = element[:value]
-            if true == expression.is_a?(String) && ( m = expression.match(/\$SE\{(.*)\}/) )
-              expression = m[1]
-              tfe = true
-            else
-              tfe = false
+
+            tfe = false
+            ie = false
+            if true == expression.is_a?(String)
+              if ( m = expression.match(/\$SE\{(.*)\}/) )
+                expression = m[1]
+                tfe = true
+              elsif ( m = expression.match(/\$I\{(.*)\}/) )
+                expression = m[1]
+                ie = true
+              end
             end
 
             if true == expression.is_a?(String)
@@ -171,6 +177,8 @@ module Xls
               exp = { ref: element[:hint] }
               if true == tfe
                 exp[:properties] = [{ name: 'textFieldExpression', value: expression } ]
+              elsif true == ie
+                exp[:properties] = [{ name: 'imageExpression', value: expression } ]
               else
                 exp[:properties] = [{ name: 'text', value: expression } ]
               end
@@ -181,6 +189,8 @@ module Xls
               pfv[0][:properties] ||= []
               if true == tfe
                 pfv[0][:properties] = [{ name: 'textFieldExpression', value: expression } ]
+              elsif true == ie
+                pfv[0][:properties] = [{ name: 'imageExpression', value: expression } ]
               else
                 pfv[0][:properties] = [{ name: 'text', value: expression } ]
               end
@@ -483,6 +493,9 @@ module Xls
           _type = :fields
         when :variable, :variables
           _type = :variables
+          if true == Xls::Vrxml::Variable.is_known_variable(name)
+            return
+          end
         else
           ::Xls::Vrxml::Log.ERROR(msg: "'%s'?" % [ type.to_s ], exception: ArgumentError)
         end

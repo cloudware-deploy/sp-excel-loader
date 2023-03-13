@@ -56,6 +56,14 @@ module Xls
       def self.known_variables
         @@known_variables
       end
+      def self.is_known_variable(name)
+        @@known_variables.each do | var |
+          if name == var[:name] || name.match(@@capture)[2] == var[:name]
+            return true
+          end
+        end
+        return false
+      end
       
       attr_accessor :name
       attr_accessor :java_class

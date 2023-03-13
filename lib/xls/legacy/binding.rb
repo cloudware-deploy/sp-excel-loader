@@ -34,12 +34,14 @@ module Xls
       #
       # @param sheet        'Data Binding' sheet
       # @param relationship for translation purpose.
+      # @param hammer       no comments
       #
-      def initialize(sheet:, relationship:'lines')
+      def initialize(sheet:, relationship:'lines', hammer: nil)
         super(sheet: sheet, relationship: relationship)
-        @parameter = { legacy: nil, map: nil, translated: {}}
-        @fields    = { legacy: nil, map: nil, translated: {}}
-        @variables = { legacy: nil, map: nil, translated: {}}
+        @parameters = { legacy: nil, map: nil, translated: {}}
+        @fields     = { legacy: nil, map: nil, translated: {}}
+        @variables  = { legacy: nil, map: nil, translated: {}}
+        @hammer     = hammer
       end
 
       #
@@ -48,9 +50,9 @@ module Xls
       def collect ()
         extracted = []
         # parameters
-        @parameter[:legacy] = ::Xls::Vrxml::Binding.get_table(named: 'params_def', at: @worksheet, optional: true)
-        if nil != @parameter[:legacy]
-          @parameter[:map], @parameter[:translated], _extracted = Binding.table_to_array(table: @parameter[:legacy], worksheet: @worksheet, relationship: @relationship, nce: @nce)
+        @parameters[:legacy] = ::Xls::Vrxml::Binding.get_table(named: 'params_def', at: @worksheet, optional: true)
+        if nil != @parameters[:legacy]
+          @parameters[:map], @parameters[:translated], _extracted = Binding.table_to_array(table: @parameters[:legacy], worksheet: @worksheet, relationship: @relationship, nce: @nce)
           extracted.concat(_extracted)
         end
         # fields
@@ -65,20 +67,30 @@ module Xls
           @variables[:map], @variables[:translated], _extracted = Binding.table_to_array(table: @variables[:legacy], worksheet: @worksheet, relationship: @relationship, nce: @nce, alt_id: :name)
           extracted.concat(_extracted)
         end
-        # 
-        extracted.each do | item |          
+        #
+        extracted.each do | item |
+          _item = { name: item[:value], value: { __origin__: 'layout//auto' } }
+          # hammering zone
+          _hkt = (item[:type].to_s + 's').to_sym
+          _hkn = item[:value].to_sym
+          _ho  = false
+          if nil != @hammer && nil != @hammer[_hkt] && nil != @hammer[_hkt] && nil != @hammer[_hkt][_hkn]
+            _item[:value][:java_class] = @hammer[_hkt][_hkn][:java_class]
+            _item[:value][:__origin__] = "external//hammer"
+            _ho = true
+          end
           case item[:type]
           when :parameter
-            if false == @parameter[:translated].include?(item[:value])
-              @parameter[:translated][item[:value]] = { name: item[:value], value: { __origin__: 'layout//auto' } }
+            if true == _ho || false == @parameters[:translated].include?(item[:value])
+              @parameters[:translated][item[:value]] = _item
             end
           when :field
-            if false == @fields[:translated].include?(item[:value])
-              @fields[:translated][item[:value]] = { name: item[:value], value: { __origin__: 'layout//auto' } }
+            if true == _ho || false == @fields[:translated].include?(item[:value])
+              @fields[:translated][item[:value]] = _item
             end
           when :variable
-            if false == @variables[:translated].include?(item[:value])
-              @variables[:translated][item[:value]] = { name: item[:value], value: { __origin__: 'layout//auto' } }
+            if true == _ho || false == @variables[:translated].include?(item[:value])
+              @variables[:translated][item[:value]] = _item
             end
           else
             ::Xls::Vrxml::Log.ERROR(msg: "'%s'?" % [ item[:type].to_s ], exception: ArgumentError)

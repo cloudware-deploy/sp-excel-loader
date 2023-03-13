@@ -35,10 +35,11 @@ module Xls
       # @param layout       'Layout' sheet
       # @param binding      'Data Binding' sheet
       # @param relationship for translation purpose.
+      # @param hammer       no comments
       #
-      def initialize(layout:, binding:, relationship:'lines')
+      def initialize(layout:, binding:, relationship:'lines', hammer: nil)
         @bands   = Bands.new(sheet: layout, relationship: relationship)
-        @binding = Binding.new(sheet: binding, relationship: relationship)
+        @binding = Binding.new(sheet: binding, relationship: relationship, hammer: hammer)
       end
 
     end # of class 'Collector'
