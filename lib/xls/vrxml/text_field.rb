@@ -40,7 +40,7 @@ module Xls
         @evaluation_time           = nil
         if nil != binding
           @pattern                   = pattern || binding[:pattern]
-          @pattern_expression        = binding[:pattern_expression]
+          @pattern_expression        = binding[:patternExpression]
           @report_element.properties = binding[:properties]
           @report_element.print_when_expression = binding[:printWhenExpression]
         else

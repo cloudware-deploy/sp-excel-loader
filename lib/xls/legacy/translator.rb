@@ -46,6 +46,9 @@ module Xls
         @hammer_uri = uri + ".json"
         if File.exist?(@hammer_uri)
           @hammer = JSON.parse(File.read(@hammer_uri), symbolize_names: true)
+          # log
+          ap @hammer
+          ::Xls::Vrxml::Log.WARNING(msg: "^ #{@hammer_uri}")
         end
       end
       
@@ -91,7 +94,7 @@ module Xls
             if true == tables[type].include?(_item[:name])
               next
             end
-            tables[type][_item[:name]] = { name: _item[:name], value: { '__origin__': ( _item[:__origin__] || "\"#{__method__}\"" ), java_class: 'java.lang.String' } }
+            tables[type][_item[:name]] = { name: _item[:name], value: { '__origin__': ( _item[:__origin__] || "\"#{__method__}\"" ), java_class: _item[:java_class] || 'java.lang.String' } }
             if nil != _item[:ref]
               i = RubyXL::Reference.ref2ind(_item[:ref])
               @layout_sheet[i[0]][i[1]].change_contents(_item[:name])

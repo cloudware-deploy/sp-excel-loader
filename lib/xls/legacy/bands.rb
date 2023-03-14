@@ -34,8 +34,9 @@ module Xls
       #
       # @param sheet        'Layout' sheet
       # @param relationship for translation purpose.
+      # @param hammer       no comments
       #
-      def initialize(sheet:, relationship:'lines')
+      def initialize(sheet:, relationship:'lines', hammer: nil)
         super(sheet: sheet, relationship: relationship)
         @map         = {}
         @map[:bands] = { legacy: {} }
@@ -45,12 +46,13 @@ module Xls
         @elements    = { legacy: {}, translated: { parameters: [], fields: [], variables: [], cells:[] } }
         @auto_naming = { parameters: {}, fields: {}, variables: {}, expressions:{} }
         @named_cells = {}
+        @hammer      = hammer
       end
           
       #
       # Collect and translate 'Bands' data.
       #
-      def collect()
+      def collect(hammer: nil)
 
         # collect bands
         @band_type = nil
@@ -507,9 +509,14 @@ module Xls
             break
           end
         end
+        # ...
+        java_class = nil
+        if nil != @hammer && nil != @hammer[_type] && nil != @hammer[_type][name.to_sym]
+          java_class = @hammer[_type][name.to_sym][:java_class]
+        end
         # ... add?
         if true == add
-          @elements[:translated][_type] << { name: name, __origin__: __method__, ref: ref }
+          @elements[:translated][_type] << { name: name, __origin__: __method__, ref: ref, java_class: java_class }
         end
       end # add_if_missing
 

@@ -730,7 +730,12 @@ module Xls
               #   @current_band.properties  << Property.new("epaper.casper.band.patch.op.add.attribute.data_row_type.name", value)
               when ''
               else
-                ::Xls::Vrxml::Binding.halt(msg: "Don't know how to set '%s%s".yellow % [ "#{k.to_s}".red, "' attribute / property!".yellow ])
+                if nil != @report.group && @report.group.respond_to?(_attr.to_sym)
+                  @report.group.send("#{_attr}=", v)
+                else
+                  Xls::Vrxml::Log.WARNING(msg: "Don't know how to set '%s%s".yellow % [ "#{k.to_s}".red, "' attribute / property!".yellow ])
+                  # ::Xls::Vrxml::Binding.halt(msg: "Don't know how to set '%s%s".yellow % [ "#{k.to_s}".red, "' attribute / property!".yellow ])
+                end
               end
             end
           end

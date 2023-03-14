@@ -88,7 +88,7 @@ module Xls
               data[k] = {
                 cell: cells[@columns[k]],
                 name: k,
-                value: cells[@columns[k]] ? cells[@columns[k]].value : nil,
+                value: cells[@columns[k]] ? cells[@columns[k]].value.strip : nil,
                 row: row,
                 column: @columns[k]
               }
@@ -259,15 +259,15 @@ module Xls
       #
       def self.to_java_class(a_type)
         case a_type.downcase
-        when 'double', 'floa'
+        when 'java.lang.double', 'double', 'float'
           return 'java.lang.Double'
-        when 'integer', 'int'
+        when 'java.lang.integer', 'integer', 'int'
           return 'java.lang.Integer'
-        when 'boolean', 'bool'
+        when 'java.lang.boolean', 'boolean', 'bool'
           return 'java.lang.Boolean'
-        when 'string'
+        when 'java.lang.string', 'string'
           return 'java.lang.String'
-        when 'Date'
+        when 'java.util.date', 'Date'
           return 'java.util.Date'
         else
           raise "Don't know how to convert C/JavaScript type '#{a_type}' to Java type!"
