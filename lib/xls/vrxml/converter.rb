@@ -182,8 +182,9 @@ module Xls
                 binding.each do | k, v |
                   _attr = k.to_s.to_underscore
                   next if nil == v
-                  if true == @report.respond_to?(_attr.to_sym)
-                    @report.send("#{_attr}=", v)
+                  if true == @report.group.respond_to?(_attr.to_sym)
+                    @report.group.send("#{_attr}=", v)
+                    declare_expression_entities(@report.group.group_expression)
                   else
                     case _attr
                     when 'expression'
@@ -730,11 +731,24 @@ module Xls
               #   @current_band.properties  << Property.new("epaper.casper.band.patch.op.add.attribute.data_row_type.name", value)
               when ''
               else
-                if nil != @report.group && @report.group.respond_to?(_attr.to_sym)
-                  @report.group.send("#{_attr}=", v)
+                # TODO 2.0: review
+                case @band_type
+                when /GH\d*:/
+                  if @report.group.respond_to?(_attr.to_sym)
+                    @report.group.send("#{_attr}=", v)
+                    if :group_expression == _attr.to_sym
+                      declare_expression_entities(@report.group.group_expression)
+                    end
+                  end
+                when /GF\d*:/
+                  if @report.group.respond_to?(_attr.to_sym)
+                    @report.group.send("#{_attr}=", v)
+                    if :group_expression == _attr.to_sym
+                      declare_expression_entities(@report.group.group_expression)
+                    end
+                  end
                 else
                   Xls::Vrxml::Log.WARNING(msg: "Don't know how to set '%s%s".yellow % [ "#{k.to_s}".red, "' attribute / property!".yellow ])
-                  # ::Xls::Vrxml::Binding.halt(msg: "Don't know how to set '%s%s".yellow % [ "#{k.to_s}".red, "' attribute / property!".yellow ])
                 end
               end
             end

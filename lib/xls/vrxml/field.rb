@@ -45,11 +45,10 @@ module Xls
         if ! Field.expr().match name
           raise "Invalid 'field' name '#{name}'!"
         end
-        @name                     = name
-        @binding                  = binding || { __origin__: 'auto' }
-        @java_class               = java_class || @binding[:java_class] || 'java.lang.String'
-        @description              = @binding[:description] || nil       
-        @default_value_expression = @binding[:default]     || @binding[:default_value_expression]
+        @name        = name
+        @binding     = binding || { __origin__: 'auto' }
+        @java_class  = java_class || @binding[:java_class] || 'java.lang.String'
+        @description = @binding[:description] || nil       
       end
 
       def attributes
