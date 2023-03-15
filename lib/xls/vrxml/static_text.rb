@@ -42,7 +42,7 @@ module Xls
       def to_xml (a_node)
         Nokogiri::XML::Builder.with(a_node) do |xml|
           if nil != @cell
-            xml.comment(" #{@cell[:name] || @cell[:ref] || ''} #{@tracking ? @tracking : '' } ")
+            xml.comment(" #{@cell[:name] || @cell[:ref] || ''}#{@tracking ? " #{@tracking}" : '' } ")
           end
           xml.staticText(attributes)
         end

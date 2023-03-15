@@ -41,7 +41,7 @@ module Xls
       DEBUG           = 0x1000
       SHOW_V8_EXPR    = 0x0FFF
 
-      MASK           = SHOW_INFO | STEPS | WARNINGS | ERRORS | TODO | DEBUG # | TRANSLATIONS
+      MASK           = SHOW_INFO | STEPS | WARNINGS | ERRORS | TODO # | DEBUG # | TRANSLATIONS
       # | TABLES
       # | TRACE | TRANSLATIONS
 
