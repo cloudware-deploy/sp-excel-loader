@@ -148,6 +148,8 @@ module Xls
               if ( m = expression.match(/\$SE\{(.*)\}/) )
                 expression = m[1]
                 tfe = true
+              elsif ( m = expression.match(/\$RB\{(.*)\}/) )
+                ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: fix @ #{__FILE__}:#{__LINE__} - #{expression}")
               elsif ( m = expression.match(/\$I\{(.*)\}/) )
                 expression = m[1]
                 ie = true

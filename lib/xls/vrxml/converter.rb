@@ -220,8 +220,10 @@ module Xls
                     @report.update_page_size()
                   when :size
                     @report.update_page_size()
+                  when :vscale
+                    next
                   else
-                    # nothing to do here
+                    ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: #{k} = #{v} - apply?")
                   end
                 end                
               else
@@ -975,6 +977,8 @@ module Xls
         if ( m = _exp.match(/\$SE\{(.*)\}/) )
           _exp = m[1]
           _tfe = true
+        elsif ( m = _exp.match(/\$RB\{(.*)\}/) )
+          ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: fix @ #{__FILE__}:#{__LINE__} - #{_exp}")
         else
           _tfe = false
         end

@@ -33,7 +33,7 @@ module Xls
 
       def initialize (a_name = nil)
         @name = a_name || 'Group1'
-        @group_expression  = "$['lines'][index][data_row_type]"
+        @group_expression  = "$['lines'][index]['data_row_type']"
         @is_start_new_page = nil
         @is_reprint_header_on_each_page = nil
         @group_header = GroupHeader.new
