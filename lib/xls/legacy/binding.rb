@@ -96,6 +96,8 @@ module Xls
             ::Xls::Vrxml::Log.ERROR(msg: "'%s'?" % [ item[:type].to_s ], exception: ArgumentError)
           end
         end
+        # SPECIAL CASE i18n_date_format
+        inject_i18n_date_format_if_needed()        
       end # collect()
 
       private
@@ -165,6 +167,30 @@ module Xls
         end
         # done
         return map, translation, extracted
+      end
+
+      #
+      # Lazy workers helper: inject 'i18n_date_format' parameter.
+      #
+      def inject_i18n_date_format_if_needed()
+        has_dates = false
+        @parameters[:translated].each do | _k, _v |
+          if 'java.util.Date' == _v[:value][:java_class]
+            has_dates = true
+            break
+          end
+        end
+        if false == has_dates
+          @fields[:translated].each do | _k, _v |
+            if 'java.util.Date' == _v[:value][:java_class]
+              has_dates = true
+              break
+            end
+          end
+        end
+        if true == has_dates && false == @parameters[:translated].include?('i18n_date_format')
+          @parameters[:translated]["$['i18n_date_format']"] = { name: "$['i18n_date_format']", value: { java_class: 'java.lang.String', defaultValueExpression: 'dd/MM/yyyy' } }
+        end
       end
 
     end # of class 'Binding'      

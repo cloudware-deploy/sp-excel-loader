@@ -193,8 +193,10 @@ module Xls
           match = dn.reference.match(ref_regexp)
           if match and match.size == 3
             matched_name = match[1].to_s + match[2].to_s
-            if map[matched_name]
-              raise "**** Fatal error:\n     duplicate cellname for #{matched_name}: #{@map[matched_name]} and #{dn.name}"
+            if map[dn.name]
+              ::Xls::Vrxml::Log.ERROR(msg: "duplicate cellname for ref #{matched_name}: #{map[dn.name]} and #{dn.name}", exception: ArgumentError)
+            elsif r_map[matched_name]
+              ::Xls::Vrxml::Log.ERROR(msg: "duplicate cellname for ref #{matched_name}: #{r_map[matched_name]} and #{dn.name}", exception: ArgumentError)
             end
             map[dn.name] = matched_name
             r_map[matched_name] = dn.name

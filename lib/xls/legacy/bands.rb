@@ -148,8 +148,19 @@ module Xls
               if ( m = expression.match(/\$SE\{(.*)\}/) )
                 expression = m[1]
                 tfe = true
-              elsif ( m = expression.match(/\$RB\{(.*)\}/) )
-                ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: fix @ #{__FILE__}:#{__LINE__} - #{expression}")
+              elsif ( m = expression.match(/\$RB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\d{1,})\s*,\s*(\d{1,})\}/) )
+                # check box: $RB{<field_name>,<unchecked>,<checked>}
+                # ( at this point we still need a "JAVA" expression to be translated later on )
+                expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
+                tfe = true
+              elsif( m = expression.match(/\$CB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\d{1,})\s*,\s*(\d{1,})\}/) )
+                # check box: $CB{<field_name>,<unchecked>,<checked>}
+                # ( at this point we still need a "JAVA" expression to be translated later on )
+                expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
+              elsif ( m = expression.match(/\$CB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\btrue\b|\bfalse\b{1})\s*,\s*(\btrue\b|\bfalse\b{1})\}/) )
+                # check box: $CB{<field_name>,<unchecked>,<checked>}
+                # ( at this point we still need a "JAVA" expression to be translated later on )
+                expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
               elsif ( m = expression.match(/\$I\{(.*)\}/) )
                 expression = m[1]
                 ie = true
@@ -255,13 +266,13 @@ module Xls
               # add all possible missing parameters / fields / variables
               pfv.each do | _item |
                 _item[:properties] ||= [] 
-                _item[:properties] << { name: 'java_class', value: 'java.lang.String' }
+                _item[:properties] << { name: '__original_java_expression__', value: element[:value] }
                 add_pfv_if_missing(type: _item[:append], ref: _item[:ref], name: _item[:name])
                 @elements[:translated][:cells] << _item
               end # pfv.each
             elsif nil != exp
               exp[:properties] ||= []
-              exp[:properties] << { name: 'java_class', value: 'java.lang.String' }
+              exp[:properties] << { name: '__original_java_expression__', value: element[:value] }
               @elements[:translated][:cells] << exp
             else 
               raise "WTF?"

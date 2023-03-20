@@ -43,7 +43,7 @@ module Xls
       def attributes
         rv = Hash.new
         rv['name'] = @name
-        rv['isStartNewPage'] = @is_start_new_page unless  @is_start_new_page  .nil?
+        rv['isStartNewPage'] = @is_start_new_page unless  @is_start_new_page.nil?
         rv['isReprintHeaderOnEachPage'] = @is_reprint_header_on_each_page unless @is_reprint_header_on_each_page.nil?
         return rv
       end

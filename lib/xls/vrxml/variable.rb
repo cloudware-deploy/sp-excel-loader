@@ -69,6 +69,7 @@ module Xls
       attr_accessor :java_class
       attr_accessor :calculation
       attr_accessor :reset_type
+      attr_accessor :reset_group
       attr_accessor :variable_expression
       attr_accessor :initial_value_expression
       
@@ -82,9 +83,14 @@ module Xls
         @binding                  = binding || { __origin__: 'auto' }
         @java_class               = java_class || @binding[:java_class] || 'java.lang.String'
         @calculation              = @binding[:calculation]        || 'System'
-        @reset_type               = @binding[:reset]              || @binding[:reset_type]
-        @variable_expression      = @binding[:expression]         || @binding[:variable_expression]
-        @initial_value_expression = @binding[:initial_expression] || @binding[:initial_value_expression]
+        @reset_type               = @binding[:reset]              || @binding[:reset_type] || @binding[:resetType]
+        if @reset_type == 'Group'
+          @reset_group = @binding[:reset_group] || @binding[:resetGroup] || 'Group1'
+        else
+          @reset_group = nil
+        end
+        @variable_expression      = @binding[:expression]         || @binding[:variable_expression]      || @binding[:variableExpression]
+        @initial_value_expression = @binding[:initial_expression] || @binding[:initial_value_expression] || @binding[:initialValueExpression]
       end
 
       def attributes
@@ -93,7 +99,7 @@ module Xls
         rv['class']       = @java_class
         rv['calculation'] = @calculation
         rv['resetType']   = @reset_type unless @reset_type.nil? or @reset_type == 'None'
-        rv['resetGroup']  = 'Group1' if @reset_type == 'Group'
+        rv['resetGroup']  = @reset_group if nil != @reset_group
         return rv
       end
 

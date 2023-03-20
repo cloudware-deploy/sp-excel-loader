@@ -24,7 +24,7 @@ module Xls
 
     class TextField < StaticText
 
-      attr_reader   :text_field_expression
+      attr_accessor :text_field_expression
       attr_accessor :is_stretch_with_overflow
       attr_accessor :is_blank_when_null
       attr_accessor :evaluation_time
@@ -39,11 +39,12 @@ module Xls
         @is_stretch_with_overflow  = false
         @evaluation_time           = nil
         if nil != binding
-          @pattern                   = pattern || binding[:pattern]
-          @pattern_expression        = binding[:patternExpression]
-          @report_element.properties = binding[:properties]
+          @pattern                              = pattern || binding[:pattern]
+          @pattern_expression                   = binding[:patternExpression]
+          @is_stretch_with_overflow             = binding[:is_stretch_with_overflow] || binding[:isStretchWithOverflow] || ( binding.include?(:textAdjust) ? 'StretchHeight' == binding[:textAdjust] :false )
+          @report_element.properties            = binding[:properties]
           @report_element.print_when_expression = binding[:printWhenExpression]
-        else
+          else
           @pattern                   = nil
           @pattern_expression        = nil
           @report_element.properties = nil

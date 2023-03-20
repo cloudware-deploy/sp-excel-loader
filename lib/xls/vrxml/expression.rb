@@ -121,13 +121,13 @@ module Xls
             # track
             nce[expression] = {
               :jrxml => uri,
-              :error => stderr.read
+              :error => JSON.parse(stderr.read.strip, symbolize_names: true)[:error]
             }
             error = true
             # TODO 2.0? is this ok ?
             return expression
           end
-          rv = stdout.read.strip
+          rv = JSON.parse(stdout.read.strip, symbolize_names: true)[:translated]
           # no param/field/variable
           if 0 == rv.length
             rv = expression

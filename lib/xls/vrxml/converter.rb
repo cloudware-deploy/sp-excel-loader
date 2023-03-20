@@ -907,16 +907,16 @@ module Xls
       #
       # Obtain a property for a specific cell
       #
-      # @param ref Cell reference.
+      # @param name     Cell name, NOT reference.
       # @param property Symbol, property to read from binding table.
       #
       # @return Nil if not found.
       #
-      def get_binding_property_for_ref_or_named_cell(ref:, property:)
-        if false == @report.named_cells.include?(ref)
+      def get_binding_property_for_ref_or_named_cell(name:, property:)
+        if false == @report.named_cells.include?(name)
           return nil
         end
-        return @report.named_cells[ref], @report.named_cells[ref][property]
+        return @report.named_cells[name], @report.named_cells[name][property]
       end
 
       #
@@ -939,9 +939,15 @@ module Xls
         else
             raise "???"
         end
-        # override with named cell?
+        # merge with named cell?
         if nil != cell && nil != cell[:name]
-          binding, patttern = get_binding_property_for_ref_or_named_cell(ref: cell[:name], property: :presentation)            
+          _binding, _patttern = get_binding_property_for_ref_or_named_cell(name: cell[:name], property: :presentation)
+          if nil != _binding
+            binding = binding.merge(_binding)
+          else
+            binding = _binding
+          end
+          pattern = _patttern
         end
         # patch binding?
         if nil != binding && true == binding.include?(:presentation)
@@ -977,8 +983,6 @@ module Xls
         if ( m = _exp.match(/\$SE\{(.*)\}/) )
           _exp = m[1]
           _tfe = true
-        elsif ( m = _exp.match(/\$RB\{(.*)\}/) )
-          ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: fix @ #{__FILE__}:#{__LINE__} - #{_exp}")
         else
           _tfe = false
         end
@@ -1005,7 +1009,9 @@ module Xls
             end
           end
           # add text field element
-          binding, patttern = get_binding_property_for_ref_or_named_cell(ref: _ref, property: :pattern)
+          if @ref2name.include?(_ref) && @report.named_cells.include?(@ref2name[_ref])
+            binding, patttern = get_binding_property_for_ref_or_named_cell(name: @ref2name[_ref], property: :pattern)
+          end
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
             tracking += ":#{__LINE__ + 2}"
           end
@@ -1029,7 +1035,7 @@ module Xls
         else        
           # basic text, no parameter(s)/field(s)/variable(s) or expression(s)
           if @ref2name.include?(_ref) && @report.named_cells.include?(@ref2name[_ref])
-            binding, patttern = get_binding_property_for_ref_or_named_cell(ref: @ref2name[_ref], property: :presentation)
+            binding, patttern = get_binding_property_for_ref_or_named_cell(name: @ref2name[_ref], property: :presentation)
           end
           # add text field element
           if ::Xls::Vrxml::Log::DEBUG == ( ::Xls::Vrxml::Log::MASK & ::Xls::Vrxml::Log::DEBUG )
@@ -1046,7 +1052,9 @@ module Xls
           end
         end
 
+        #
         # shitstorm avoidance area
+        #
         if nil != rv && rv.is_a?(TextField)
           # "fix" f*ed up exploration_map.vpdf.xlsx and similar?
           if 1 == _ext.count && nil != rv.report_element && nil != rv.report_element.print_when_expression
@@ -1056,21 +1064,19 @@ module Xls
               rv.report_element.print_when_expression = "null != #{rv.report_element.print_when_expression}"
             end
           end
+          # "fix" 'java.util.Date'
+          if nil != binding && 'java.util.Date' == binding[:java_class]
+            # override  - server DID SEND AND MUST KEEPING SENDING DATES WITH PATTERN yyyy-MM-dd
+            binding[:text_field_expression], _ = Vrxml::Expression.translate(expression: "DateFormat.parse(#{binding[:__original_java_expression__]},\"yyyy-MM-dd\")", relationship: @relationship, nce: @not_converted_expressions)
+            binding[:pattern_expression]   , _ = Vrxml::Expression.translate(expression: "$P{i18n_date_format}", relationship: @relationship, nce: @not_converted_expressions)
+            rv.text_field_expression = binding[:text_field_expression]
+            rv.pattern_expression    = binding[:pattern_expression]
+            # TODO 2.0: casper.binding
+            # rv.report_element.properties << Property.new('epaper.casper.text.field.patch.pattern', 'yyyy-MM-dd') unless rv.report_element.properties.nil?
+          end          
         end
 
-        # TODO 2.0: implement
-        if !f_id.nil? && rv.is_a?(TextField)
-          ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: implement @ #{__FILE__}:#{__LINE__} - java.util.Date")
-          if @widget_factory.java_class(f_id) == 'java.util.Date'
-            rv.text_field_expression = "DateFormat.parse(#{rv.text_field_expression},\"yyyy-MM-dd\")"
-            rv.pattern_expression = "$P{i18n_date_format}"
-            rv.report_element.properties << Property.new('epaper.casper.text.field.patch.pattern', 'yyyy-MM-dd') unless rv.report_element.properties.nil?
-            parameter = Parameter.new(name: 'i18n_date_format', java_class: 'java.lang.String')
-            parameter.default_value_expression = '"dd/MM/yyyy"'
-            @report.parameters['i18n_date_format'] = parameter
-          end
-        end
-
+        # done
         return rv
       end
 
