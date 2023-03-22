@@ -44,23 +44,22 @@ module Xls
           @is_stretch_with_overflow             = binding[:is_stretch_with_overflow] || binding[:isStretchWithOverflow] || ( binding.include?(:textAdjust) ? 'StretchHeight' == binding[:textAdjust] :false )
           @report_element.properties            = binding[:properties]
           @report_element.print_when_expression = binding[:printWhenExpression]
-          else
+        else
           @pattern                   = nil
           @pattern_expression        = nil
           @report_element.properties = nil
         end
         @text_field_expression = text_field_expression
         @cell                  = cell
-        @pattern               = pattern
         @tracking              = tracking
       end
 
       def attributes
         rv = Hash.new
-        rv['isStretchWithOverflow'] = true if @is_stretch_with_overflow
-        rv['pattern']               = @pattern unless @pattern.nil?
-        rv['isBlankWhenNull']       = @is_blank_when_null unless @is_blank_when_null.nil?
-        rv['evaluationTime']        = @evaluation_time unless @evaluation_time.nil?
+        rv[:isStretchWithOverflow] = true if @is_stretch_with_overflow
+        rv[:pattern]               = @pattern unless @pattern.nil?
+        rv[:isBlankWhenNull]       = @is_blank_when_null unless @is_blank_when_null.nil?
+        rv[:evaluationTime]        = @evaluation_time unless @evaluation_time.nil?
         return rv
       end
 

@@ -261,18 +261,25 @@ module Xls
               end # if
             end # each
 
+            # ... A.S. not A.I. ...
+            _suspicious = ( nil != _extracted && _extracted.count > 1 && false == ['==', '===', '!=', '>' , '<', '!='].any? { |word| expression.include?(word) } && false == expression.start_with?('`') && false == expression.end_with?('`') )
+
             # pfv?
             if nil != pfv
               # add all possible missing parameters / fields / variables
               pfv.each do | _item |
                 _item[:properties] ||= [] 
-                _item[:properties] << { name: '__original_java_expression__', value: element[:value] }
+                _item[:properties] << { name: '__original_java_expression__', value: element[:value]      }
+                _item[:properties] << { name: '__composed__'                , value: true            } if nil != _extracted && _extracted.count > 1
+                _item[:properties] << { name: '__suspicious__'              , value: _suspicious     } if true == _suspicious                  
                 add_pfv_if_missing(type: _item[:append], ref: _item[:ref], name: _item[:name])
                 @elements[:translated][:cells] << _item
               end # pfv.each
             elsif nil != exp
               exp[:properties] ||= []
               exp[:properties] << { name: '__original_java_expression__', value: element[:value] }
+              exp[:properties] << { name: '__composed__'                , value: true            } if nil != _extracted && _extracted.count > 1
+              exp[:properties] << { name: '__suspicious__'              , value: _suspicious     } if true == _suspicious
               @elements[:translated][:cells] << exp
             else 
               raise "WTF?"

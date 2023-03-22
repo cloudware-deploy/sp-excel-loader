@@ -158,7 +158,7 @@ module Xls
                             'isFloatColumnFooter'              => @is_float_column_footer,
                             'dataSourceType' => @data_source_type
           ) {
-            xml.comment(" Created with xls2vrxml #{@generator_version} @ #{Time.now.utc.to_s} ")
+            xml.comment(" Created with xls2vrxml #{@generator_version} @ #{Time.now.utc.strftime("%d-%m-%Y")} ")
           }
         end
 
@@ -167,7 +167,7 @@ module Xls
         #
         Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
           xml.comment(" STYLES ")
-        end          
+        end
         @styles.each do |name, style|
           if @style_set.include? name
             style.to_xml(@builder.doc.children[0])
@@ -179,7 +179,7 @@ module Xls
         #
         Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
           xml.comment(" PARAMETERS ")
-        end          
+        end
         @parameters.each do |name, parameter|
           parameter.to_xml(@builder.doc.children[0])
         end
@@ -189,7 +189,7 @@ module Xls
         #
         Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
           xml.comment(" FIELDS ")
-        end          
+        end
         @fields.each do |name, field|
           field.to_xml(@builder.doc.children[0])
         end
@@ -199,7 +199,7 @@ module Xls
         #
         Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
           xml.comment(" VARIABLES ")
-        end          
+        end
         @variables.each do |name, variable|
           next if ['PAGE_NUMBER', 'MASTER_CURRENT_PAGE', 'MASTER_TOTAL_PAGES', 
                     'COLUMN_NUMBER', 'REPORT_COUNT', 'PAGE_COUNT', 'COLUMN_COUNT'].include? name
@@ -296,6 +296,22 @@ module Xls
         Vrxml::Log.TODO(msg: "#{__method__} (id: #{id}, name:#{name}, ...) called from #{caller} - NEEDS REVIEW")
 
         @variables[name] = Variable.new(name: name, java_class: java_class)
+      end
+
+      #
+      # 
+      #
+      def value_of(type:, name:)
+        case type
+        when :parameter
+          return @parameters[name]
+        when :field
+          return @fields[name]
+        when :variable
+          return @variables[name]
+        else
+          raise "#{type}"
+        end
       end
 
       #

@@ -131,7 +131,7 @@ module Xls
           # no param/field/variable
           if 0 == rv.length
             rv = expression
-          end                    
+          end   
           # done
           return rv
         end # popen3

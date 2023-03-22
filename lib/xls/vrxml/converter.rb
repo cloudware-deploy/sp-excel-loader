@@ -95,7 +95,7 @@ module Xls
         '993366', # 61
         '333399', # 62
         '333333'  # 63
-      ]              
+      ]
 
       attr_reader   :report
       attr_reader   :bindings
@@ -225,13 +225,13 @@ module Xls
                   else
                     ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: #{k} = #{v} - apply?")
                   end
-                end                
+                end
               else
                 Vrxml::Log.WHAT_IS(msg: "#{name} => #{value['Value'][:value]}")
               end
             else
               ::Xls::Vrxml::Binding.halt(msg: " Don't know how to process '#{type}' binding!", file: __FILE__, line: __LINE__)
-            end              
+            end
           end # map
         end # @binding.map
 
@@ -264,7 +264,7 @@ module Xls
             puts value[:error]
           end
           raise "Unable to convert %d expression(s)" % [@not_converted_expressions.length]
-        end                    
+        end    
         #
         # TABLES
         #
@@ -588,7 +588,7 @@ module Xls
         @workbook.worksheets.each do |ws|
           if @layout_sheet_name != ws.sheet_name
             next
-          end            
+          end
           @worksheet    = ws
           @raw_width    = 0
           @current_band = nil
@@ -1055,6 +1055,38 @@ module Xls
         #
         # shitstorm avoidance area
         #
+        if nil != rv && nil != binding && true == binding.include?(:__composed__) && true == binding.include?(:__suspicious__)
+          if rv.is_a?(TextField) || rv.is_a?(StaticText)
+            _esc = 0
+            _ext.each do | e |
+              _ev = @report.value_of(type: e[:type], name: e[:value])
+              if nil != _ev && nil != _ev.java_class
+                if 'java.lang.String' == _ev.java_class
+                  _esc += 1
+                end
+              else
+                raise "WTF ???"
+              end
+            end
+            if _esc == _ext.count
+              _fake = binding[:__original_java_expression__]
+              [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index | 
+                _fake = _fake.gsub(_symbol, "_#{_index + 1}_")
+              end
+              binding[:text_field_expression], _ = Vrxml::Expression.translate(expression: "_00_ #{_fake} _99_", relationship: @relationship, nce: @not_converted_expressions)
+              [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index |
+                binding[:text_field_expression] = binding[:text_field_expression].gsub("_#{_index + 1}_", _symbol)
+              end
+              binding[:text_field_expression] = binding[:text_field_expression].gsub('_00_ ', '').gsub(' _99_', '')
+            end
+            if rv.is_a?(TextField)
+              rv.text_field_expression = binding[:text_field_expression]
+            elsif rv.is_a?(StaticText)
+              rv.text = binding[:text_field_expression]
+            end
+          end
+        end
+
         if nil != rv && rv.is_a?(TextField)
           # "fix" f*ed up exploration_map.vpdf.xlsx and similar?
           if 1 == _ext.count && nil != rv.report_element && nil != rv.report_element.print_when_expression
@@ -1073,7 +1105,7 @@ module Xls
             rv.pattern_expression    = binding[:pattern_expression]
             # TODO 2.0: casper.binding
             # rv.report_element.properties << Property.new('epaper.casper.text.field.patch.pattern', 'yyyy-MM-dd') unless rv.report_element.properties.nil?
-          end          
+          end
         end
 
         # done

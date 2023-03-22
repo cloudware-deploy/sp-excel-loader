@@ -157,7 +157,7 @@ module Xls
               end
             else
               h[k1] = v1
-            end              
+            end
           end
           h.delete(:id)
           if h.include?(:editable)
