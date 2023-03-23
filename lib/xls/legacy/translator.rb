@@ -126,7 +126,7 @@ module Xls
               end
             end
           end
-          value[:updated_at] ||= Time.now.utc.to_s
+          value[:updated_at] ||= Time.now.utc.strftime("%d-%m-%Y")
           # done
           tables[:named_cells][_ref] = value
         end

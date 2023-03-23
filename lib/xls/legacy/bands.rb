@@ -308,7 +308,7 @@ module Xls
         @map.each do | k, h |
           translated[k] = {}
           h[:legacy].each do | k1, v1 |
-            t = { name: k1, value: {}, updated_at: Time.now.utc.to_s }
+            t = { name: k1, value: {}, updated_at: Time.now.utc.strftime("%d-%m-%Y") }
             v1.each do | k2, v2 |
               if [:start_row, :end_row, :elements].include?(k2)
                 next
