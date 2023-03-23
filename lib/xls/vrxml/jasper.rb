@@ -244,23 +244,10 @@ module Xls
       def add_parameter(id:, name:, java_class:, caller: caller_locations(1,1)[0].base_label)
         if @parameters.has_key?(name)
           return
-        end
-        
-        parameter = Parameter.new(name: name, java_class: java_class)
-
-        Vrxml::Log.TODO(msg: "#{__method__} (id: #{id}, name:#{name}, ...) called from #{caller} - NEEDS REVIEW")
-
-        # if @bindings.has_key? id
-        #   binding = @bindings[id]
-        #   if binding.respond_to? 'default' and binding.default != nil and binding.default.strip != ''
-        #     if binding.java_class == 'java.lang.String'
-        #       parameter.default_value_expression = "\"#{binding.default.strip}\""
-        #     else
-        #       parameter.default_value_expression = binding.default.strip
-        #     end
-        #   end
-        # end
-        @parameters[name] = parameter
+        end        
+        @parameters[name] = Parameter.new(name: name, java_class: java_class)
+        # log
+        Vrxml::Log.WARNING(msg: "#{__method__}(id: #{id}, name:#{name}, ...) from #{caller} - was not declared assuming #{java_class || 'java.lang.String'}")
       end
 
       #
@@ -274,10 +261,9 @@ module Xls
         if @fields.has_key?(name)
           return
         end
-        
-        Vrxml::Log.TODO(msg: "#{__method__} (id: #{id}, name:#{name}, ...) called from #{caller} - NEEDS REVIEW")
-
         @fields[name] = Field.new(name: name, java_class: java_class)
+        # log
+        Vrxml::Log.WARNING(msg: "#{__method__}(id: #{id}, name:#{name}, ...) from #{caller} - was not declared assuming #{java_class || 'java.lang.String'}")
       end
 
       #
@@ -288,14 +274,12 @@ module Xls
       # @param caller For debug purpose only.
       #
       def add_variable(id:, name:, java_class:, caller: caller_locations(1,1)[0].base_label)
-
         if "PAGE_NUMBER" == name || @variables.has_key?(name)
           return
         end
-
-        Vrxml::Log.TODO(msg: "#{__method__} (id: #{id}, name:#{name}, ...) called from #{caller} - NEEDS REVIEW")
-
         @variables[name] = Variable.new(name: name, java_class: java_class)
+        # log
+        Vrxml::Log.WARNING(msg: "#{__method__}(id: #{id}, name:#{name}, ...) from #{caller} - was not declared assuming #{java_class || 'java.lang.String'}")
       end
 
       #

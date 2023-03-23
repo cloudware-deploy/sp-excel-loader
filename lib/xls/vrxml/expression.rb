@@ -90,6 +90,17 @@ module Xls
         return _exp, _ext
       end
 
+
+      def self.test_if_null(expression:, legacy_type: nil)
+        if nil == expression || false == expression.is_a?(String)|| 0 == expression.length
+          return false
+        end
+        _extracted    = Expression.extract(expression: expression)
+        _has_operators = ['==', '===', '!=', '>' , '<', '!=', ' ? '].any? { |operator| expression.include?(operator) }
+        _is_suspicious = ( nil != _extracted && _extracted.count > 1 && false == _has_operators && false == expression.start_with?('`') && false == expression.end_with?('`') && ( nil == legacy_type || false == ['SE', 'RB', 'CB'].any? { |word| legacy_type.include?(word) } ) )
+        return ( false == _is_suspicious && false == _has_operators )
+      end
+
       private
 
       #
@@ -135,7 +146,7 @@ module Xls
           # done
           return rv
         end # popen3
-      end      
+      end
 
     end # class 'Expression'
 

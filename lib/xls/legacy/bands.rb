@@ -156,6 +156,12 @@ module Xls
                 expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
                 tfe = true
                 old_type = 'RB'
+              elsif ( m = expression.match(/\$RB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\"\w\")\s*,\s*(\"\w\")\s*\}/) )
+                # radio button: $RB{<field_name>,<unchecked>,<checked>}
+                # ( at this point we still need a "JAVA" expression to be translated later on )
+                expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
+                tfe = true
+                old_type = 'RB'
               elsif( m = expression.match(/\$CB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\d{1,})\s*,\s*(\d{1,})\}/) )
                 # check box: $CB{<field_name>,<unchecked>,<checked>}
                 # ( at this point we still need a "JAVA" expression to be translated later on )
@@ -267,24 +273,29 @@ module Xls
             end # each
 
             # ... A.S. not A.I. ...
-            _suspicious = ( nil != _extracted && _extracted.count > 1 && false == ['==', '===', '!=', '>' , '<', '!='].any? { |word| expression.include?(word) } && false == expression.start_with?('`') && false == expression.end_with?('`') && ( nil == old_type || false == ['SE', 'RB', 'CB'].any? { |word| old_type.include?(word) } ) )
+            _has_operators     = ( nil != expression && expression.is_a?(String) && ['==', '===', '!=', '>' , '<', '!='].any? { |operator| expression.include?(operator) } )
+            _is_expression     = ( nil != _extracted && _extracted.count > 1 )
+            _is_suspicious     = ( true == _is_expression && false == _has_operators && false == expression.start_with?('`') && false == expression.end_with?('`') && ( nil == old_type || false == ['SE', 'RB', 'CB'].any? { |word| old_type.include?(word) } ) )
+            _can_test_for_null = ( nil != _extracted && 1 == _extracted.count && nil == old_type && false == _is_suspicious )
 
             # pfv?
             if nil != pfv
               # add all possible missing parameters / fields / variables
               pfv.each do | _item |
                 _item[:properties] ||= [] 
-                _item[:properties] << { name: '__original_java_expression__', value: element[:value]      }
-                _item[:properties] << { name: '__composed__'                , value: true            } if nil != _extracted && _extracted.count > 1
-                _item[:properties] << { name: '__suspicious__'              , value: _suspicious     } if true == _suspicious                  
+                _item[:properties] << { name: '__original_java_expression__', value: element[:value]    }
+                _item[:properties] << { name: '__is_expression__'           , value: _is_expression     }
+                _item[:properties] << { name: '__suspicious__'              , value: _is_suspicious     }
+                _item[:properties] << { name: '__can_test_for_null__'       , value: _can_test_for_null }
                 add_pfv_if_missing(type: _item[:append], ref: _item[:ref], name: _item[:name])
                 @elements[:translated][:cells] << _item
               end # pfv.each
             elsif nil != exp
               exp[:properties] ||= []
-              exp[:properties] << { name: '__original_java_expression__', value: element[:value] }
-              exp[:properties] << { name: '__composed__'                , value: true            } if nil != _extracted && _extracted.count > 1
-              exp[:properties] << { name: '__suspicious__'              , value: _suspicious     } if true == _suspicious
+              exp[:properties] << { name: '__original_java_expression__', value: element[:value]    }
+              exp[:properties] << { name: '__is_expression__'           , value: _is_expression     }
+              exp[:properties] << { name: '__suspicious__'              , value: _is_suspicious     }
+              exp[:properties] << { name: '__can_test_for_null__'       , value: _can_test_for_null }
               @elements[:translated][:cells] << exp
             else 
               raise "WTF?"
@@ -456,7 +467,7 @@ module Xls
         when /Band.splitType:.+/i, /IsReport:.+/i # ignored
           clear = true
         when /DetailColsAutoHeight:*/, /AutoStretch:*/
-          Xls::Vrxml::Log.WHAT_IS(msg: "Don't know how to process '%s%s".yellow % [ "#{tag.to_s}".red, "' row tag!".yellow ])
+          Xls::Vrxml::Log.WHAT_IS(msg: "%s '%s%s".yellow % [ self.class.name, "#{tag.to_s}".red, "' row tag!".yellow ])
           clear = true
         else
           @band_type = nil

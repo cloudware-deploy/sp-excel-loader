@@ -1055,61 +1055,90 @@ module Xls
           end
         end
 
-        #
+        ###########################
         # shitstorm avoidance area
-        #
-        if nil != rv && nil != binding && true == binding.include?(:__composed__) && true == binding.include?(:__suspicious__)
-          if rv.is_a?(TextField) || rv.is_a?(StaticText)
-            _esc = 0
-            _ext.each do | e |
-              _ev = @report.value_of(type: e[:type], name: e[:value])
-              if nil != _ev && nil != _ev.java_class
-                if 'java.lang.String' == _ev.java_class
-                  _esc += 1
+        ###########################
+        if nil != rv && nil != binding
+          #
+          # FIX: 'interpolation'
+          #
+          if true == ( binding[:__is_expression__] || false ) && true == ( binding[:__suspicious__] || false )
+            if rv.is_a?(TextField) || rv.is_a?(StaticText)
+              # candidate ?
+              if false == ( binding[:__can_test_for_null__] || false )
+                if rv.is_a?(TextField)
+                  _can_interpolate = ( false == binding[:text].start_with?('`${') && false == binding[:text].end_with?('}`') )
+                  if true == _can_interpolate
+                    #
+                    _legacy_expression = binding[:__original_java_expression__]
+                    [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index | 
+                      _legacy_expression = _legacy_expression.gsub(_symbol, "_#{_index + 1}_")
+                    end
+                    _new_translation, _ = Vrxml::Expression.translate(expression: "_00_ #{_legacy_expression} _99_", relationship: @relationship, nce: @not_converted_expressions)
+                    [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index |
+                      _new_translation = _new_translation.gsub("_#{_index + 1}_", _symbol)
+                    end
+                    _new_translation = _new_translation.gsub('_00_ ', '').gsub(' _99_', '')
+                    # done
+                    rv.text_field_expression = _new_translation
+                  end
                 end
-              else
-                raise "WTF ???"
               end
             end
-            if _esc == _ext.count
-              _fake = binding[:__original_java_expression__]
-              [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index | 
-                _fake = _fake.gsub(_symbol, "_#{_index + 1}_")
+          end
+          #
+          # FIX: 'if null' - f*ed up exploration_map.vpdf.xlsx and similar?
+          #
+          if rv.is_a?(TextField)
+            _patch = {}
+            [ :printWhenExpression ].each do | _ek |
+              #
+              _pk = nil
+              if true == binding.include?(_ek)
+                _pk = _ek
+              elsif true == binding.include?(_ek.to_s.to_underscore.to_sym)
+                _pk = _ek.to_s.to_underscore.to_sym
               end
-              binding[:text_field_expression], _ = Vrxml::Expression.translate(expression: "_00_ #{_fake} _99_", relationship: @relationship, nce: @not_converted_expressions)
-              [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index |
-                binding[:text_field_expression] = binding[:text_field_expression].gsub("_#{_index + 1}_", _symbol)
+              #
+              if nil == _pk || false == ( binding[:__can_test_for_null__] || false )
+                next
               end
-              binding[:text_field_expression] = binding[:text_field_expression].gsub('_00_ ', '').gsub(' _99_', '')
+              #
+              if false == Vrxml::Expression.test_if_null(expression: binding[_pk], legacy_type: ['SE', 'RB', 'CB'])
+                next
+              end
+              # 
+              case _ek
+              when :printWhenExpression
+                _patch[_ek.to_s.to_underscore.to_sym] = { new_value: "null != #{binding[_pk]}" }
+              end
             end
-            if rv.is_a?(TextField)
+            #
+            if _patch.keys.count > 0
+              _patch.each do | _pk, _pv |
+                case _pk
+                when :print_when_expression
+                  rv.report_element.print_when_expression = _pv[:new_value]
+                end
+              end
+            end
+          end
+          #
+          # "fix" 'java.util.Date'
+          #
+          if nil != rv && rv.is_a?(TextField)
+            if nil != binding && 'java.util.Date' == binding[:java_class]
+              # override  - server DID SEND AND MUST KEEPING SENDING DATES WITH PATTERN yyyy-MM-dd
+              binding[:text_field_expression], _ = Vrxml::Expression.translate(expression: "DateFormat.parse(#{binding[:__original_java_expression__]},\"yyyy-MM-dd\")", relationship: @relationship, nce: @not_converted_expressions)
+              binding[:pattern_expression]   , _ = Vrxml::Expression.translate(expression: "$P{i18n_date_format}", relationship: @relationship, nce: @not_converted_expressions)
               rv.text_field_expression = binding[:text_field_expression]
-            elsif rv.is_a?(StaticText)
-              rv.text = binding[:text_field_expression]
+              rv.pattern_expression    = binding[:pattern_expression]
+              # TODO 2.0: casper.binding
+              # rv.report_element.properties << Property.new('epaper.casper.text.field.patch.pattern', 'yyyy-MM-dd') unless rv.report_element.properties.nil?
             end
           end
         end
 
-        if nil != rv && rv.is_a?(TextField)
-          # "fix" f*ed up exploration_map.vpdf.xlsx and similar?
-          if 1 == _ext.count && nil != rv.report_element && nil != rv.report_element.print_when_expression
-            # apply fix
-            case binding[:java_class]
-            when 'java.lang.String'
-              rv.report_element.print_when_expression = "null != #{rv.report_element.print_when_expression}"
-            end
-          end
-          # "fix" 'java.util.Date'
-          if nil != binding && 'java.util.Date' == binding[:java_class]
-            # override  - server DID SEND AND MUST KEEPING SENDING DATES WITH PATTERN yyyy-MM-dd
-            binding[:text_field_expression], _ = Vrxml::Expression.translate(expression: "DateFormat.parse(#{binding[:__original_java_expression__]},\"yyyy-MM-dd\")", relationship: @relationship, nce: @not_converted_expressions)
-            binding[:pattern_expression]   , _ = Vrxml::Expression.translate(expression: "$P{i18n_date_format}", relationship: @relationship, nce: @not_converted_expressions)
-            rv.text_field_expression = binding[:text_field_expression]
-            rv.pattern_expression    = binding[:pattern_expression]
-            # TODO 2.0: casper.binding
-            # rv.report_element.properties << Property.new('epaper.casper.text.field.patch.pattern', 'yyyy-MM-dd') unless rv.report_element.properties.nil?
-          end
-        end
 
         # done
         return rv
@@ -1206,7 +1235,7 @@ module Xls
       end
 
       def transform_expression(expression:)
-        _exp, _ext = Vrxml::Expression.translate(expression: v2, relationship: @relationship, nce: @not_converted_expressions)
+        _exp, _ext = Vrxml::Expression.translate(expression: expression, relationship: @relationship, nce: @not_converted_expressions)
         # add all parameters/fields/variables
         if _ext.count > 0
           _ext.each do | element |
