@@ -49,7 +49,7 @@ module Xls
           @pattern_expression        = nil
           @report_element.properties = nil
         end
-        @text_field_expression = text_field_expression
+        @text_field_expression = text_field_expression || binding[:text_field_expression] || binding[:textFieldExpression]
         @cell                  = cell
         @tracking              = tracking
       end

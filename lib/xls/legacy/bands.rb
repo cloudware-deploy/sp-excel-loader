@@ -144,19 +144,23 @@ module Xls
 
             tfe = false
             ie = false
+            old_type = nil
             if true == expression.is_a?(String)
               if ( m = expression.match(/\$SE\{(.*)\}/) )
                 expression = m[1]
                 tfe = true
+                old_type = 'SE'
               elsif ( m = expression.match(/\$RB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\d{1,})\s*,\s*(\d{1,})\}/) )
-                # check box: $RB{<field_name>,<unchecked>,<checked>}
+                # radio button: $RB{<field_name>,<unchecked>,<checked>}
                 # ( at this point we still need a "JAVA" expression to be translated later on )
                 expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
                 tfe = true
+                old_type = 'RB'
               elsif( m = expression.match(/\$CB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\d{1,})\s*,\s*(\d{1,})\}/) )
                 # check box: $CB{<field_name>,<unchecked>,<checked>}
                 # ( at this point we still need a "JAVA" expression to be translated later on )
                 expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
+                old_type = 'CB'
               elsif ( m = expression.match(/\$CB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\btrue\b|\bfalse\b{1})\s*,\s*(\btrue\b|\bfalse\b{1})\}/) )
                 # check box: $CB{<field_name>,<unchecked>,<checked>}
                 # ( at this point we still need a "JAVA" expression to be translated later on )
@@ -164,6 +168,7 @@ module Xls
               elsif ( m = expression.match(/\$I\{(.*)\}/) )
                 expression = m[1]
                 ie = true
+                old_type = 'CB'
               end
             end
 
@@ -262,7 +267,7 @@ module Xls
             end # each
 
             # ... A.S. not A.I. ...
-            _suspicious = ( nil != _extracted && _extracted.count > 1 && false == ['==', '===', '!=', '>' , '<', '!='].any? { |word| expression.include?(word) } && false == expression.start_with?('`') && false == expression.end_with?('`') )
+            _suspicious = ( nil != _extracted && _extracted.count > 1 && false == ['==', '===', '!=', '>' , '<', '!='].any? { |word| expression.include?(word) } && false == expression.start_with?('`') && false == expression.end_with?('`') && ( nil == old_type || false == ['SE', 'RB', 'CB'].any? { |word| old_type.include?(word) } ) )
 
             # pfv?
             if nil != pfv
