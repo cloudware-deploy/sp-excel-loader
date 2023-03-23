@@ -346,6 +346,9 @@ module Xls
         if @worksheet.comments.size > 0 && nil != @worksheet.comments[0].comment_list
           @worksheet.comments[0].comment_list.delete_if.with_index { |_, index| @cz_comments.include? index }
         end
+        # ⚠️ delete rows will break formulas and layout ( model_31 image, e.g.)!
+        # TODO 2.0: unmerge cells? @empty_rows
+
       end
 
       private
@@ -451,6 +454,9 @@ module Xls
         when /Query:.+/i, /Id:.+/i                # ignored
           clear = true
         when /Band.splitType:.+/i, /IsReport:.+/i # ignored
+          clear = true
+        when /DetailColsAutoHeight:*/, /AutoStretch:*/
+          Xls::Vrxml::Log.WHAT_IS(msg: "Don't know how to process '%s%s".yellow % [ "#{tag.to_s}".red, "' row tag!".yellow ])
           clear = true
         else
           @band_type = nil

@@ -713,6 +713,9 @@ module Xls
         else
           @current_band = nil
           @band_type    = nil
+          if 0 != a_row_tag.length
+            Xls::Vrxml::Log.WARNING(msg: "Don't know how to process '%s%s".yellow % [ "#{a_row_tag.to_s}".red, "' tag!".yellow ])
+          end
         end
 
         # band 'binding'
