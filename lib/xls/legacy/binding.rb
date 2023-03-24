@@ -163,7 +163,7 @@ module Xls
           if h.include?(:editable)
             h[:editable] = ( 1 == h[:editable] ? true : false )
           end
-          translation[id] = { name: id, value: h, updated_at: Time.now.utc.strftime("%d-%m-%Y") }
+          translation[id] = { name: id, value: h, updated_at: nil }
         end
         # done
         return map, translation, extracted

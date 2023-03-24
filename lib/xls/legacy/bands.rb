@@ -25,6 +25,8 @@ module Xls
 
     class Bands < TheCollector
 
+      LEGACY_WIDGET_TYPES = ['SE', 'RB', 'CB']
+
       attr_reader :map
       attr_reader :elements
       attr_reader :named_cells
@@ -275,27 +277,57 @@ module Xls
             # ... A.S. not A.I. ...
             _has_operators     = ( nil != expression && expression.is_a?(String) && ['==', '===', '!=', '>' , '<', '!='].any? { |operator| expression.include?(operator) } )
             _is_expression     = ( nil != _extracted && _extracted.count > 1 )
-            _is_suspicious     = ( true == _is_expression && false == _has_operators && false == expression.start_with?('`') && false == expression.end_with?('`') && ( nil == old_type || false == ['SE', 'RB', 'CB'].any? { |word| old_type.include?(word) } ) )
+            _is_single_pfv     = ( nil != _extracted && 1 == _extracted.count )
+            _is_text_only      = ( nil == _extracted || 0 == _extracted.count )
+            _is_suspicious     = ( true == _is_expression && false == _has_operators && false == expression.start_with?('`') && false == expression.end_with?('`') && ( nil == old_type || false == LEGACY_WIDGET_TYPES.any? { |word| old_type.include?(word) } ) )
             _can_test_for_null = ( nil != _extracted && 1 == _extracted.count && nil == old_type && false == _is_suspicious )
+            _can_interpolate   = ( true == _is_expression && true == _is_suspicious && false == _can_test_for_null && false == expression.start_with?('`${') && false == expression.end_with?('}`') )
+            _interpolated_exp  = ( true == _can_interpolate ? Vrxml::Expression.get_interpolation(expression: element[:value], relationship: @relationship, nce: @nce) : nil )
 
             # pfv?
             if nil != pfv
               # add all possible missing parameters / fields / variables
               pfv.each do | _item |
+                # append internal properties
                 _item[:properties] ||= [] 
                 _item[:properties] << { name: '__original_java_expression__', value: element[:value]    }
+                _item[:properties] << { name: '__interpolated_exp__'        , value: _interpolated_exp  } if true == _can_interpolate
+                _item[:properties] << { name: '__is_text_only__'            , value: _is_text_only      }
                 _item[:properties] << { name: '__is_expression__'           , value: _is_expression     }
+                _item[:properties] << { name: '__is_single_pfv__'           , value: _is_single_pfv     }
                 _item[:properties] << { name: '__suspicious__'              , value: _is_suspicious     }
                 _item[:properties] << { name: '__can_test_for_null__'       , value: _can_test_for_null }
                 add_pfv_if_missing(type: _item[:append], ref: _item[:ref], name: _item[:name])
+                # shitstorm avoidance - # FIX: 'if null' - f*ed up exploration_map.vpdf.xlsx and similar
+                _item[:properties].each do | property |
+                  if 'printWhenExpression' == property[:name]
+                    if true == Vrxml::Expression.test_if_null(expression: property[:value], legacy_type: LEGACY_WIDGET_TYPES)
+                      property[:value] = "null != #{property[:value]}"
+                    end
+                  end
+                end
+                # track
                 @elements[:translated][:cells] << _item
               end # pfv.each
             elsif nil != exp
+              # append internal properties
               exp[:properties] ||= []
               exp[:properties] << { name: '__original_java_expression__', value: element[:value]    }
+              exp[:properties] << { name: '__interpolated_exp__'        , value: _interpolated_exp  } if true == _can_interpolate
+              exp[:properties] << { name: '__is_text_only__'            , value: _is_text_only      }
               exp[:properties] << { name: '__is_expression__'           , value: _is_expression     }
+              exp[:properties] << { name: '__is_single_pfv__'           , value: _is_single_pfv     }
               exp[:properties] << { name: '__suspicious__'              , value: _is_suspicious     }
               exp[:properties] << { name: '__can_test_for_null__'       , value: _can_test_for_null }
+                # shitstorm avoidance - # FIX: 'if null' - f*ed up exploration_map.vpdf.xlsx and similar
+                exp[:properties].each do | property |
+                if 'printWhenExpression' == property[:name]
+                  if true == Vrxml::Expression.test_if_null(expression: property[:value], legacy_type: LEGACY_WIDGET_TYPES)
+                    property[:value] = "null != #{property[:value]}"
+                  end
+                end
+              end
+              # track
               @elements[:translated][:cells] << exp
             else 
               raise "WTF?"
@@ -303,12 +335,13 @@ module Xls
 
           end # elements.each
         end #  @elements[:legacy].each
+
         # translate
         translated = {}
         @map.each do | k, h |
           translated[k] = {}
           h[:legacy].each do | k1, v1 |
-            t = { name: k1, value: {}, updated_at: Time.now.utc.strftime("%d-%m-%Y") }
+            t = { name: k1, value: {}, updated_at: nil }
             v1.each do | k2, v2 |
               if [:start_row, :end_row, :elements].include?(k2)
                 next

@@ -101,6 +101,18 @@ module Xls
         return ( false == _is_suspicious && false == _has_operators )
       end
 
+      def self.get_interpolation(expression:, relationship:, nce:, tracking: { file: __FILE__, line: __LINE__, method: __method__, caller: caller_locations(1,1)[0].base_label })
+        non_v8_expression = expression
+        [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index | 
+          non_v8_expression = non_v8_expression.gsub(_symbol, "_#{_index + 1}_")
+        end
+        _new_translation, _ = Vrxml::Expression.translate(expression: "_00_ #{non_v8_expression} _99_", relationship: relationship, nce: nce, tracking: tracking)
+        [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index |
+          _new_translation = _new_translation.gsub("_#{_index + 1}_", _symbol)
+        end
+        _new_translation = _new_translation.gsub('_00_ ', '').gsub(' _99_', '')
+      end
+
       private
 
       #

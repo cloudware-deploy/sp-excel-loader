@@ -71,7 +71,9 @@ module Xls
       attr_accessor :summary
       attr_accessor :no_data
 
-      def initialize (a_name)
+      def initialize (name:, date: Time.now.utc.strftime("%d-%m-%Y"))
+
+        @date             = date
 
         # init data set
         @group            = nil
@@ -106,7 +108,7 @@ module Xls
         @right_margin      = 37
         @top_margin        = 30
         @bottom_margin     = 30
-        @report_name       = a_name
+        @report_name       = name
         @is_title_new_page = false
         @is_summary_with_page_header_and_footer = true;
         @is_float_column_footer                 = true;
@@ -139,7 +141,7 @@ module Xls
         end
       end 
 
-      def to_xml
+      def to_xml()
         @builder = Nokogiri::XML::Builder.new(:encoding => 'UTF-8') do |xml|
           xml.jasperReport('xmlns'              => 'http://jasperreports.sourceforge.net/jasperreports',
                             'xmlns:xsi'          => 'http://www.w3.org/2001/XMLSchema-instance',
@@ -158,7 +160,7 @@ module Xls
                             'isFloatColumnFooter'              => @is_float_column_footer,
                             'dataSourceType' => @data_source_type
           ) {
-            xml.comment(" Created with xls2vrxml #{@generator_version} @ #{Time.now.utc.strftime("%d-%m-%Y")} ")
+            xml.comment(" Created with xls2vrxml #{@generator_version} @ #{@date} ")
           }
         end
 

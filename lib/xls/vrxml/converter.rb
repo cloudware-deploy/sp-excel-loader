@@ -121,11 +121,11 @@ module Xls
       #
       # @param to Local file URI.
       #
-      def convert(to: nil)
+      def convert(to: nil, date: Time.now.utc.strftime("%d-%m-%Y"))
 
         read_all_tables()
 
-        @report = JasperReport.new(@report_name)
+        @report = JasperReport.new(name: @report_name, date: date)
 
         @binding = ::Xls::Vrxml::Binding.new(workbook: @workbook)
         @binding.load()
@@ -983,12 +983,6 @@ module Xls
         end
         # sanitize
         _exp = a_cell.value.to_s.strip
-        if ( m = _exp.match(/\$SE\{(.*)\}/) )
-          _exp = m[1]
-          _tfe = true
-        else
-          _tfe = false
-        end
         # extract expression and related parameter(s)/field(s)/variable(s) ( if any )
         _exp, _ext = Vrxml::Expression.translate(expression: _exp, relationship: @relationship, nce: @not_converted_expressions)
         if _ext.count > 1
@@ -1062,66 +1056,8 @@ module Xls
           #
           # FIX: 'interpolation'
           #
-          if true == ( binding[:__is_expression__] || false ) && true == ( binding[:__suspicious__] || false )
-            if rv.is_a?(TextField) || rv.is_a?(StaticText)
-              # candidate ?
-              if false == ( binding[:__can_test_for_null__] || false )
-                if rv.is_a?(TextField)
-                  _can_interpolate = ( false == binding[:text].start_with?('`${') && false == binding[:text].end_with?('}`') )
-                  if true == _can_interpolate
-                    #
-                    _legacy_expression = binding[:__original_java_expression__]
-                    [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index | 
-                      _legacy_expression = _legacy_expression.gsub(_symbol, "_#{_index + 1}_")
-                    end
-                    _new_translation, _ = Vrxml::Expression.translate(expression: "_00_ #{_legacy_expression} _99_", relationship: @relationship, nce: @not_converted_expressions)
-                    [ '+', '-', '*', '/', '%'].each_with_index do | _symbol, _index |
-                      _new_translation = _new_translation.gsub("_#{_index + 1}_", _symbol)
-                    end
-                    _new_translation = _new_translation.gsub('_00_ ', '').gsub(' _99_', '')
-                    # done
-                    rv.text_field_expression = _new_translation
-                  end
-                end
-              end
-            end
-          end
-          #
-          # FIX: 'if null' - f*ed up exploration_map.vpdf.xlsx and similar?
-          #
-          if rv.is_a?(TextField)
-            _patch = {}
-            [ :printWhenExpression ].each do | _ek |
-              #
-              _pk = nil
-              if true == binding.include?(_ek)
-                _pk = _ek
-              elsif true == binding.include?(_ek.to_s.to_underscore.to_sym)
-                _pk = _ek.to_s.to_underscore.to_sym
-              end
-              #
-              if nil == _pk || false == ( binding[:__can_test_for_null__] || false )
-                next
-              end
-              #
-              if false == Vrxml::Expression.test_if_null(expression: binding[_pk], legacy_type: ['SE', 'RB', 'CB'])
-                next
-              end
-              # 
-              case _ek
-              when :printWhenExpression
-                _patch[_ek.to_s.to_underscore.to_sym] = { new_value: "null != #{binding[_pk]}" }
-              end
-            end
-            #
-            if _patch.keys.count > 0
-              _patch.each do | _pk, _pv |
-                case _pk
-                when :print_when_expression
-                  rv.report_element.print_when_expression = _pv[:new_value]
-                end
-              end
-            end
+          if nil != binding[:__interpolated_exp__] && rv.is_a?(TextField)
+            rv.text_field_expression = binding[:__interpolated_exp__]
           end
           #
           # "fix" 'java.util.Date'

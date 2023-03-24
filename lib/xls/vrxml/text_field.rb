@@ -43,7 +43,10 @@ module Xls
           @pattern_expression          = binding[:patternExpression]
           @is_stretch_with_overflow    = binding[:is_stretch_with_overflow] || binding[:isStretchWithOverflow] || ( binding.include?(:textAdjust) ? 'StretchHeight' == binding[:textAdjust] :false )
           @report_element.properties   = binding[:properties]
-          @report_element.stretch_type = binding[:stretch_type] || binding[:stretchType]
+          if binding[:stretch_type] || binding[:stretchType]
+            @report_element.stretch_type = binding[:stretch_type] || binding[:stretchType]
+          end
+          @report_element.print_when_expression = binding[:printWhenExpression]
         else
           @pattern                   = nil
           @pattern_expression        = nil

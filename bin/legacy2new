@@ -69,14 +69,14 @@ dst_vrxml = dst_xlsx.sub('.vpdf.xlsx', '.vrxml')
 #
 ::Xls::Vrxml::Log.STEP(msg: " ˗ Translate...".cyan)
 translator = ::Xls::Legacy::Translator.new(uri: $args[:source])
-translator.translate(to: dst_xlsx)
+translator.translate(to: dst_xlsx, date: date)
 
 #
 # 2) New XLSX -> VRXML
 #
 ::Xls::Vrxml::Log.STEP(msg: " ˗ Convert...".cyan)
 converter = ::Xls::Vrxml::Converter.new(dst_xlsx)
-converter.convert(to: dst_vrxml)
+converter.convert(to: dst_vrxml, date: date)
 
 ::Xls::Vrxml::Log.STEP(msg: " • %s".cyan    % [ $args[:source] ])
 ::Xls::Vrxml::Log.STEP(msg: "   + %s".green % [ dst_xlsx ]     )

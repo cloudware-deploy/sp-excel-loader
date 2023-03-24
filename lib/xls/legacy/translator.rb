@@ -53,7 +53,7 @@ module Xls
       end
       
 
-      def translate(to:)
+      def translate(to:, date: Time.now.utc.strftime("%d-%m-%Y"))
         #
         # Collect Data
         #
@@ -126,7 +126,7 @@ module Xls
               end
             end
           end
-          value[:updated_at] ||= Time.now.utc.strftime("%d-%m-%Y")
+          value[:updated_at] ||= date
           # done
           tables[:named_cells][_ref] = value
         end
