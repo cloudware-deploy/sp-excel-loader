@@ -64,6 +64,8 @@ dst_vrxml = dst_xlsx.sub('.vpdf.xlsx', '.vrxml')
 #
 ::Xls::Vrxml::Log.STEP(msg: "#{$args[:source]}".white)
 
+date = Time.now.utc.strftime("%d-%m-%Y")
+
 #
 # 1) Legacy XLS -> New XLSX
 #

@@ -54,6 +54,7 @@ module Xls
       
 
       def translate(to:, date: Time.now.utc.strftime("%d-%m-%Y"))
+
         #
         # Collect Data
         #
@@ -64,6 +65,25 @@ module Xls
 
         @collector.binding.collect()
 
+        # cleanup invalid "named cells" entries
+        if nil != @workbook.defined_names
+          to_remove=[]
+          @workbook.defined_names.each_with_index do | dn, index|
+            if dn.reference.include?('!#REF!')
+              Xls::Vrxml::Log.WARNING(msg: "Removing invalid 'named cell' reference '%s ~> %s'".yellow % [ "#{dn.name}".red, "#{dn.reference}".red ])
+              to_remove << dn
+            end
+          end
+          while to_remove.count > 0
+            @workbook.defined_names.each_with_index do | dn, idx |
+              if dn == to_remove[0]
+                @workbook.defined_names.delete_at(idx)
+                break
+              end
+            end
+            to_remove.delete_at(0)
+          end
+        end
 
         # remove 'legacy' binding
         @workbook.worksheets.each_with_index do | sheet, index |
