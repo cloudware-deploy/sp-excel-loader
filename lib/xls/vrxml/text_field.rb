@@ -31,6 +31,7 @@ module Xls
       attr_accessor :pattern
       attr_accessor :pattern_expression
       attr_reader   :report_element
+      attr_reader   :casper_binding
 
       def initialize (binding:, cell: nil, text_field_expression: nil, pattern: nil, tracking: nil)
         super(text: nil)
@@ -47,10 +48,12 @@ module Xls
             @report_element.stretch_type = binding[:stretch_type] || binding[:stretchType]
           end
           @report_element.print_when_expression = binding[:printWhenExpression]
+          @casper_binding = binding[:'casper.binding']
         else
           @pattern                   = nil
           @pattern_expression        = nil
           @report_element.properties = nil
+          @casper_binding            = nil
         end
         @text_field_expression = text_field_expression || binding[:text_field_expression] || binding[:textFieldExpression]
         @cell                  = cell
@@ -72,6 +75,10 @@ module Xls
             xml.comment(" #{@cell[:name] || @cell[:ref] || ''}#{@tracking ? " #{@tracking}" : '' } ")
           end  
           xml.textField(attributes)
+        end
+        if false # TODO 2.0 nil != @casper_binding
+          @report_element.properties ||= []
+          @report_element.properties << Property.new('casper.binding', @casper_binding.to_json)
         end
         @report_element.to_xml(a_node.children.last)
         @box.to_xml(a_node.children.last) unless @box.nil?

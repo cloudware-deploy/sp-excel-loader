@@ -251,6 +251,17 @@ module Xls
                 property = { name: 'evaluationTime', value: _exp }
               when 'BN', 'blankIfNull' 
                 property = { name: 'isBlankWhenNull', value: _exp }
+              ### EDITABLE ###
+              when 'RIC', 'reloadIfChanged'
+                property = { name: 'casper.binding', value: { conditionals: { reload: true }} }
+              when 'SE', 'styleExpression'
+                _exp, _ext = Vrxml::Expression.translate(expression: comment[:value], relationship: @relationship, nce: @nce)
+                if _ext.count > 0
+                  _ext.each do | item |
+                    add_pfv_if_missing(type: item[:type], ref: RubyXL::Reference.new(comment[:row], comment[:column]).to_s, name: item[:value])
+                  end
+                end
+                property = { name: 'casper.binding', value: { style: { overload: { condition: _exp} }} }
               else
                 # log
                 ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: process tag %s - %s" % [comment[:tag], comment[:value]])
@@ -298,6 +309,22 @@ module Xls
                 _item[:properties] << { name: '__suspicious__'              , value: _is_suspicious     }
                 _item[:properties] << { name: '__can_test_for_null__'       , value: _can_test_for_null }
                 add_pfv_if_missing(type: _item[:append], ref: _item[:ref], name: _item[:name])
+                # merge 'casper.binding'
+                _casper_binding = {}
+                _to_remove = []
+                _item[:properties].each_with_index do | _property, _index |
+                  if 'casper.binding' == _property[:name]
+                    _casper_binding = _casper_binding.deep_merge(_property[:value])
+                    _to_remove << _index
+                  end
+                end
+                if _to_remove.count > 0
+                  _item[:properties] = _item[:properties].reject.with_index { |_, _index| _to_remove.include?(_index) }
+                end
+                if _casper_binding.keys.count > 0
+                  _item[:properties] << { name: 'casper.binding', value: _casper_binding }
+                end
+                _casper_binding = nil
                 # shitstorm avoidance - # FIX: 'if null' - f*ed up exploration_map.vpdf.xlsx and similar
                 _item[:properties].each do | property |
                   if 'printWhenExpression' == property[:name]
@@ -319,8 +346,24 @@ module Xls
               exp[:properties] << { name: '__is_single_pfv__'           , value: _is_single_pfv     }
               exp[:properties] << { name: '__suspicious__'              , value: _is_suspicious     }
               exp[:properties] << { name: '__can_test_for_null__'       , value: _can_test_for_null }
-                # shitstorm avoidance - # FIX: 'if null' - f*ed up exploration_map.vpdf.xlsx and similar
-                exp[:properties].each do | property |
+              # merge 'casper.binding'
+              _casper_binding = {}
+              _to_remove = []
+              exp[:properties].each_with_index do | _property, _index |
+                if 'casper.binding' == _property[:name]
+                  _casper_binding = _casper_binding.deep_merge(_property[:value])
+                  _to_remove << _index
+                end
+              end
+              if _to_remove.count > 0
+                exp[:properties] = exp[:properties].reject.with_index { |_, _index| _to_remove.include?(_index) }
+              end
+              if _casper_binding.keys.count > 0
+                exp[:properties] << { name: 'casper.binding', value: _casper_binding }
+              end
+              _casper_binding = nil
+              # shitstorm avoidance - # FIX: 'if null' - f*ed up exploration_map.vpdf.xlsx and similar
+              exp[:properties].each do | property |
                 if 'printWhenExpression' == property[:name]
                   if true == Vrxml::Expression.test_if_null(expression: property[:value], legacy_type: LEGACY_WIDGET_TYPES)
                     property[:value] = "null != #{property[:value]}"

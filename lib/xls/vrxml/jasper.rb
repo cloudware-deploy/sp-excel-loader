@@ -21,6 +21,8 @@
 
 require 'set'
 
+require 'xls/vrxml/editable'
+
 module Xls
   module Vrxml
 
@@ -123,6 +125,9 @@ module Xls
         end
         #
         @data_source_type = 'legacy'
+        #
+        @editable = Editable.new
+        @editable.load()
       end
 
       def update_page_size
@@ -175,6 +180,7 @@ module Xls
             style.to_xml(@builder.doc.children[0])
           end
         end
+        # TODO 2.0 ? @editable.styles_to_xml(node: @builder.doc.children[0])
 
         #
         # WRITE PARAMETERS
@@ -308,6 +314,17 @@ module Xls
       #
       def add_style(name:, value:)
         @styles[name] = value
+      end
+
+      #
+      # Clone a style.
+      #
+      # @param name  Unique name ( same as ID ).
+      # @param cell  Cell where style was found.
+      #
+      def clone_style(name:, cell:)
+        @editable.set_style(name: name, style: @styles["style_#{cell.style_index+1}"])
+        @style_set.add(name)
       end
 
     end # class 'JasperReport'

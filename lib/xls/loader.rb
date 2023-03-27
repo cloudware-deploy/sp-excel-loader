@@ -28,6 +28,7 @@ require 'rubyXL/convenience_methods/font'
 require 'json'
 
 require File.expand_path(File.join(File.dirname(__FILE__), 'extension', 'string'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'extension', 'hash'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'extension', 'rubyxl'))
 
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'workbookloader'))

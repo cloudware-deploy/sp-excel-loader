@@ -583,11 +583,11 @@ module Xls
         color
       end
 
-      def parse_sheets
+      def parse_sheets()
         @worksheet = nil
         @workbook.worksheets.each do |ws|
-          if @layout_sheet_name != ws.sheet_name
-            next
+          if false == [@layout_sheet_name].include?(ws.sheet_name) # TODO 2.0 , 'EditStyles' ?
+             next
           end
           @worksheet    = ws
           @raw_width    = 0
@@ -708,6 +708,7 @@ module Xls
         when /BasicExpressions:.+/i
           @widget_factory.basic_expressions = a_row_tag.split(':')[1].strip == 'true'
         when /Style:.+/i
+          @report.clone_style(name: a_row_tag.split(':')[1].strip, cell: @worksheet[a_row][2])
           @current_band = nil
           @band_type    = nil
         else
@@ -946,7 +947,11 @@ module Xls
         if nil != cell && nil != cell[:name]
           _binding, _patttern = get_binding_property_for_ref_or_named_cell(name: cell[:name], property: :presentation)
           if nil != _binding
-            binding = binding.merge(_binding)
+            if nil != binding
+              binding = binding.merge(_binding)
+            else
+              binding = _binding
+            end
           else
             binding = _binding
           end
