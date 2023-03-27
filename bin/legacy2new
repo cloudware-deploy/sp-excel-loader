@@ -33,7 +33,7 @@ require 'xls/legacy/translator'
 #
 # Parse command line arguments
 #
-$args = { source: nil, destination: '.' }
+$args = { source: nil, destination: nil }
 option_parser = OptionParser.new do |opts|
   opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} -s<pdf.xlsx> -d<directory>"
   opts.on('-s', '--source=URI', "input to pdf.xlsx"       ) { |v| $args[:source]      = v }
@@ -64,7 +64,7 @@ dst_vrxml = dst_xlsx.sub('.vpdf.xlsx', '.vrxml')
 #
 ::Xls::Vrxml::Log.STEP(msg: "#{$args[:source]}".white)
 
-date = Time.now.utc.strftime("%d-%m-%Y")
+date = '23-03-2023' # Time.now.utc.strftime("%d-%m-%Y")
 
 #
 # 1) Legacy XLS -> New XLSX

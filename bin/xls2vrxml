@@ -28,22 +28,24 @@ require 'optparse'
 require 'xls/loader'
 require 'xls/vrxml/jasper'
 
-$args = {
-  out_dir: '.',
-  compat: false
-}
-
 #
 # Parse command line arguments
 #
+$args = { source: nil, destination: nil }
 option_parser = OptionParser.new do |opts|
   opts.banner = "Usage: #{File.basename($PROGRAM_NAME)} [options] excel-report"
-  opts.on('-o', '--outdir=DIR', "output directory (default .)")                         { |v| $args[:out_dir] = v     }
-  opts.on('-c', '--compat'    , "generate a report compatible with JasperSoft Studio")  { $args[:compat]      = true  }
+  opts.on('-s', '--source=URI', "input to pdf.xlsx"       ) { |v| $args[:source]      = v }
+  opts.on('-d', '--destination=URI', "output directory"   ) { |v| $args[:destination] = v }
 end
 option_parser.parse!
 
-if ARGV.length != 1
+if nil == $args[:source]
+  ::Xls::Vrxml::Log.ERROR(msg: "Missing 'source' argument!", exception: nil)
+  puts option_parser.help()
+  exit
+end
+if ! File.exist?($args[:source])
+  ::Xls::Vrxml::Log.ERROR(msg: "Invalid or missing source file '%s'!" % [ $args[:source] ], exception: ArgumentError)
   puts option_parser.help()
   exit
 end
@@ -51,13 +53,13 @@ end
 #
 # Do the conversion
 #
-Dir.mkdir $args[:out_dir] unless Dir.exist?($args[:out_dir])
-report_name = File.basename(File.expand_path(ARGV[0]),'.*')
+Dir.mkdir $args[:destination] unless Dir.exist?($args[:destination])
+report_name = File.basename(File.expand_path($args[:source]),'.*')
 
-out_file = File.expand_path(File.join($args[:out_dir], report_name + '.vrxml')).sub('.vpdf.', '.')
+out_file = File.expand_path(File.join($args[:destination], report_name + '.vrxml')).sub('.vpdf.', '.')
 
-converter = ::Xls::Vrxml::Converter.new(ARGV[0], true, ! $args[:compat])
+converter = ::Xls::Vrxml::Converter.new($args[:source], true, ! $args[:compat])
 converter.convert(to: out_file)
 
-puts "%s ~> %s".cyan % [ "#{ARGV[0]}".cyan, "#{out_file}".green ]
+puts "%s ~> %s".cyan % [ "#{$args[:source]}".cyan, "#{out_file}".green ]
 0
