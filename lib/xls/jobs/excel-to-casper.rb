@@ -35,12 +35,16 @@ class ExcelToCasper
     if job[:converter] == 'vrxml'
       update_progress(message: 'A converter excel para vrxml', progress: 40)
       converter = ::Xls::Vrxml::Converter.new(input_file, true, job[:convert_mode] == 'casper')
-      vrxml = converter.convert()
-      # find all reports that match the report name all will be overwritten
-      report_name  = job[:original_file].split('.')[0]
-      replacements = Dir.glob("#{config[:paths][:project]}/app/json_templates/**/#{report_name}.vrxml")
-      replacements.each do |replacement|
-        File.write(replacement, vrxml)
+      begin
+        vrxml = converter.convert()
+        # find all reports that match the report name all will be overwritten
+        report_name  = job[:original_file].split('.')[0]
+        replacements = Dir.glob("#{config[:paths][:project]}/app/json_templates/**/#{report_name}.vrxml")
+        replacements.each do |replacement|
+          File.write(replacement, vrxml)
+        end
+      rescue => e
+        raise_error(message: "Ocorreu um erro ao converter o excel para vrxml: </br>#{e.message}</br>#{e.backtrace[0]}")
       end
     else
       update_progress(message: 'A converter excel para jrxml', progress: 40)
