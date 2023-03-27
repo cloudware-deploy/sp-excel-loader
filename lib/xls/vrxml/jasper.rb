@@ -180,7 +180,7 @@ module Xls
             style.to_xml(@builder.doc.children[0])
           end
         end
-        # TODO 2.0 ? @editable.styles_to_xml(node: @builder.doc.children[0])
+        @editable.styles_to_xml(node: @builder.doc.children[0])
 
         #
         # WRITE PARAMETERS

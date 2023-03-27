@@ -586,7 +586,7 @@ module Xls
       def parse_sheets()
         @worksheet = nil
         @workbook.worksheets.each do |ws|
-          if false == [@layout_sheet_name].include?(ws.sheet_name) # TODO 2.0 , 'EditStyles' ?
+          if false == [@layout_sheet_name, 'EditStyles'].include?(ws.sheet_name)
              next
           end
           @worksheet    = ws
@@ -715,7 +715,7 @@ module Xls
           @current_band = nil
           @band_type    = nil
           if 0 != a_row_tag.length
-            Xls::Vrxml::Log.WARNING(msg: "Don't know how to process '%s%s".yellow % [ "#{a_row_tag.to_s}".red, "' tag!".yellow ])
+            Xls::Vrxml::Log.WARNING(msg: "Don't know how to process '%s%s".yellow % [ "#{a_row_tag}".red, "' tag!".yellow ])
           end
         end
 

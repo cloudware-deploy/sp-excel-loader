@@ -252,6 +252,14 @@ module Xls
               when 'BN', 'blankIfNull' 
                 property = { name: 'isBlankWhenNull', value: _exp }
               ### EDITABLE ###
+              when 'EE', 'editableExpression'
+                _exp, _ext = Vrxml::Expression.translate(expression: comment[:value], relationship: @relationship, nce: @nce)
+                if _ext.count > 0
+                  _ext.each do | item |
+                    add_pfv_if_missing(type: item[:type], ref: RubyXL::Reference.new(comment[:row], comment[:column]).to_s, name: item[:value])
+                  end
+                end
+                property = { name: 'casper.binding', value: { conditionals: { enabled: _exp }} }
               when 'RIC', 'reloadIfChanged'
                 property = { name: 'casper.binding', value: { conditionals: { reload: true }} }
               when 'SE', 'styleExpression'
@@ -532,11 +540,15 @@ module Xls
         when /Group.isReprintHeaderOnEachPage:.+/i
           @map[:other][:legacy][:group][:isReprintHeaderOnEachPage] = ::Xls::Vrxml::Binding.to_b(tag.split(':')[1].strip)
           clear = true
-        when /CasperBinding:*/                    # TODO 2.0: ?
+        when /CasperBinding:*/                    # always!
           clear = true
         when /BasicExpressions:.+/i               # TODO 2.0: ?
+          # log
+          ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: process tag %s ?" % [tag])
           clear = true
         when /Style:.+/i                          # TODO 2.0: ?
+          # log
+          ::Xls::Vrxml::Log.TODO(msg: "@ #{__method__}: process tag %s ?" % [tag])
           clear = true
         when /Query:.+/i, /Id:.+/i                # ignored
           clear = true

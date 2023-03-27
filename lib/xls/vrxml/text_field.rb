@@ -76,7 +76,7 @@ module Xls
           end  
           xml.textField(attributes)
         end
-        if false # TODO 2.0 nil != @casper_binding
+        if nil != @casper_binding
           @report_element.properties ||= []
           @report_element.properties << Property.new('casper.binding', @casper_binding.to_json)
         end
