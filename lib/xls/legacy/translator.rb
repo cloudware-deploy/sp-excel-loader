@@ -37,6 +37,10 @@ module Xls
         @layout_sheet_name = Xls::Vrxml::Object.guess_layout_sheet(workbook: @workbook)
         # ... [E] consistency is not a requirement ... ...        
         @layout_sheet = ::Xls::Vrxml::Binding.get_sheet(named: @layout_sheet_name, at: @workbook)
+        if 'Layout' != @layout_sheet.sheet_name
+          Xls::Vrxml::Log.WARNING(msg: "Guessing 'Layout' sheet is '%s'".yellow % [ "#{@layout_sheet.sheet_name}".white])
+          @layout_sheet.sheet_name = 'Layout'
+        end
         # collect 'legacy' data
         @legacy_binding_sheet = ::Xls::Vrxml::Binding.get_sheet(named: ['Data binding', 'Databinding'], at: @workbook)
         #
