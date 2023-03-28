@@ -1070,10 +1070,14 @@ module Xls
           if nil != rv && rv.is_a?(TextField)
             if nil != binding && 'java.util.Date' == binding[:java_class]
               # override  - server DID SEND AND MUST KEEPING SENDING DATES WITH PATTERN yyyy-MM-dd
-              binding[:text_field_expression], _ = Vrxml::Expression.translate(expression: "DateFormat.parse(#{binding[:__original_java_expression__]},\"yyyy-MM-dd\")", relationship: @relationship, nce: @not_converted_expressions)
-              binding[:pattern_expression]   , _ = Vrxml::Expression.translate(expression: "$P{i18n_date_format}", relationship: @relationship, nce: @not_converted_expressions)
+              if binding[:__original_java_expression__]
+                binding[:text_field_expression], _ = Vrxml::Expression.translate(expression: "DateFormat.parse(#{binding[:__original_java_expression__]}, 'yyyy-MM-dd')", relationship: @relationship, nce: @not_converted_expressions)
+              else
+                binding[:text_field_expression] = "NativeParseDate(#{rv.text_field_expression}, 'yyyy-MM-dd', $.$$VARIABLES[index]['LOCALE'])"
+              end
+              binding[:pattern_expression], _ = Vrxml::Expression.translate(expression: "$P{i18n_date_format}", relationship: @relationship, nce: @not_converted_expressions)
               rv.text_field_expression = binding[:text_field_expression]
-              rv.pattern_expression    = binding[:pattern_expression]
+              rv.pattern_expression    = binding[:pattern_expression] || binding[:patternExpression]
               # TODO 2.0: casper.binding
               # rv.report_element.properties << Property.new('epaper.casper.text.field.patch.pattern', 'yyyy-MM-dd') unless rv.report_element.properties.nil?
             end
