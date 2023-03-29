@@ -1069,6 +1069,8 @@ module Xls
           #
           if nil != rv && rv.is_a?(TextField)
             if nil != binding && 'java.util.Date' == binding[:java_class]
+              # inject i18n_date_format parameter ( won't be replace if is already present )
+              @report.add_parameter(id: "$['i18n_date_format']", name: "$['i18n_date_format']", java_class: "java.lang.String", defaultValueExpression: 'dd/MM/yyyy', silent: true)
               # override  - server DID SEND AND MUST KEEPING SENDING DATES WITH PATTERN yyyy-MM-dd
               if binding[:__original_java_expression__]
                 binding[:text_field_expression], _ = Vrxml::Expression.translate(expression: "DateFormat.parse(#{binding[:__original_java_expression__]}, 'yyyy-MM-dd')", relationship: @relationship, nce: @not_converted_expressions)
