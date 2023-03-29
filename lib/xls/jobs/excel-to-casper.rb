@@ -44,7 +44,46 @@ class ExcelToCasper
           File.write(replacement, vrxml)
         end
       rescue => e
-        raise_error(message: "Ocorreu um erro ao converter o excel para vrxml: </br>#{e.message}</br>#{e.backtrace[0]}")
+        message = <<-HTML
+          <style>
+            casper-icon {
+              color: var(--status-red);
+            }
+
+            .backtrace {
+              font-size: 10px;
+              font-family: monospace;
+              margin: 0px;
+              margin-left: 12px;
+            }
+
+            h2, h3 {
+              margin: 6px;
+            }
+
+            h2 {
+              color: var(--status-red);
+            }
+
+          </style>
+          <div class="custom-message">
+            <casper-icon class="error" icon="fa-light:exclamation-circle"></casper-icon>
+            <h2 id="title">Ocorreu um erro ao converter o excel para vrxml</h2>
+            <h2>#{e.message}</h2>
+            <div style="display: flex; flex-direction: column; align-items: start;">
+        HTML
+        e.backtrace.each do |line|
+          message += <<-HTML
+              <h3 class="backtrace">#{line}</h3>
+          HTML
+        end
+        message += <<-HTML
+            </div>
+          </div>
+        HTML
+        report_error(message: message, 
+                     custom: true,
+                     simple_message: 'Ocorreu um erro ao converter o excel para vrxml')
       end
     else
       update_progress(message: 'A converter excel para jrxml', progress: 40)
