@@ -67,7 +67,7 @@ class ExcelToCasper
 
           </style>
           <div class="custom-message">
-            <casper-icon class="error" icon="fa-light:exclamation-circle"></casper-icon>
+            <casper-icon icon="fa-light:exclamation-circle"></casper-icon>
             <h2 id="title">Ocorreu um erro ao converter o excel para vrxml</h2>
             <h2>#{e.message}</h2>
             <div style="display: flex; flex-direction: column; align-items: start;">
