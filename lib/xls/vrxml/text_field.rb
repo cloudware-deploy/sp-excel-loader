@@ -40,6 +40,7 @@ module Xls
         @is_stretch_with_overflow  = false
         @evaluation_time           = nil
         if nil != binding
+          @evaluation_time             = binding[:evaluationTime]
           @pattern                     = pattern || binding[:pattern]
           @pattern_expression          = binding[:patternExpression]
           @is_stretch_with_overflow    = binding[:is_stretch_with_overflow] || binding[:isStretchWithOverflow] || ( binding.include?(:textAdjust) ? 'StretchHeight' == binding[:textAdjust] :false )
@@ -48,8 +49,9 @@ module Xls
             @report_element.stretch_type = binding[:stretch_type] || binding[:stretchType]
           end
           @report_element.print_when_expression = binding[:printWhenExpression]
-          @casper_binding = binding[:'casper.binding']
+          @casper_binding  = binding[:'casper.binding']
         else
+          @evaluation_time           = nil
           @pattern                   = nil
           @pattern_expression        = nil
           @report_element.properties = nil
