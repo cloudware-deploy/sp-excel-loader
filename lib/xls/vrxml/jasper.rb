@@ -56,10 +56,17 @@ module Xls
       attr_accessor :query_string
       attr_accessor :page_width
       attr_accessor :page_height
-      attr_accessor :no_data_section
       attr_accessor :orientation
       attr_accessor :paper_size
       attr_accessor :properties
+
+      attr_accessor :no_data_section
+      def when_no_data_type()
+        return @no_data_section
+      end
+      def when_no_data_type=(value)
+        @no_data_section = value
+      end
 
       # band containers
       attr_accessor :detail
