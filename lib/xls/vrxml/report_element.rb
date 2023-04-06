@@ -34,6 +34,9 @@ module Xls
       attr_accessor :stretch_type
       attr_accessor :print_when_expression
 
+      # custom
+      attr_accessor :theme_style
+
       def initialize
         @x                     = 0
         @y                     = 0
@@ -44,6 +47,7 @@ module Xls
         @position_type         = 'FixRelativeToTop'
         @stretch_type          = 'NoStretch'
         @print_when_expression = nil
+        @theme_style           = nil
       end
 
       def attributes
@@ -55,6 +59,7 @@ module Xls
         rv['style']        = @style unless @style.nil?
         rv['positionType'] = @position_type unless @position_type == 'FixRelativeToTop'
         rv['stretchType']  = @stretch_type  unless @stretch_type  == 'NoStretch'
+        rv['themeStyle']   = @theme_style unless @theme_style.nil?
         return rv
       end
 

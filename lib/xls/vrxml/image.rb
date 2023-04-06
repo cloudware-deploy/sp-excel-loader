@@ -29,7 +29,7 @@ module Xls
       attr_accessor :v_align
 
       def initialize(binding:, image_expression: nil, cell: nil, tracking: nil)
-        super(text: nil, cell: cell, tracking: tracking)
+        super(binding: nil, text: nil, cell: cell, tracking: tracking)
         @scale_image      = 'RetainShape'
         @h_align          = 'Center'
         @v_align          = 'Middle'

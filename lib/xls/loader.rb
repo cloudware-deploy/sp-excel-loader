@@ -54,6 +54,7 @@ require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'property'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'property_expression'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'expression'))
 require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'converter'))
+require File.expand_path(File.join(File.dirname(__FILE__), 'vrxml', 'theme'))
 
 #
 require File.expand_path(File.join(File.dirname(__FILE__), 'loader', 'version'))

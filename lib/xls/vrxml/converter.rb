@@ -253,6 +253,8 @@ module Xls
 
         parse_sheets()
 
+        report.themes = Theme.parse(workbook: @workbook)
+
         #
         # Raise an error if we still have expressions to convert.
         #
@@ -1049,7 +1051,7 @@ module Xls
             if nil != pattern
               rv = TextField.new(binding: binding, cell: cell, text_field_expression: _exp, pattern: pattern, tracking: tracking)
             else
-              rv = StaticText.new(cell: cell, text: _exp, tracking: tracking)
+              rv = StaticText.new(binding: binding, cell: cell, text: _exp, tracking: tracking)
             end
           end
         end
@@ -1073,7 +1075,10 @@ module Xls
               @report.add_parameter(id: "$['i18n_date_format']", name: "$['i18n_date_format']", java_class: "java.lang.String", defaultValueExpression: 'dd/MM/yyyy', silent: true)
               # override  - server DID SEND AND MUST KEEPING SENDING DATES WITH PATTERN yyyy-MM-dd
               if binding[:__original_java_expression__]
-                binding[:text_field_expression], _ = Vrxml::Expression.translate(expression: "DateFormat.parse(#{binding[:__original_java_expression__]}, 'yyyy-MM-dd')", relationship: @relationship, nce: @not_converted_expressions)
+                binding[:text_field_expression], _tmp = Vrxml::Expression.translate(expression: "DateFormat.parse(#{binding[:__original_java_expression__]}, 'yyyy-MM-dd')", relationship: @relationship, nce: @not_converted_expressions)
+                if 1 == _tmp.count
+                  binding[:text_field_expression] = "NativeParseDate(#{rv.text_field_expression}, 'yyyy-MM-dd', $.$$VARIABLES[index]['LOCALE'])"
+                end
               else
                 binding[:text_field_expression] = "NativeParseDate(#{rv.text_field_expression}, 'yyyy-MM-dd', $.$$VARIABLES[index]['LOCALE'])"
               end

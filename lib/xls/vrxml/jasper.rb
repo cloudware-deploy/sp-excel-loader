@@ -79,6 +79,7 @@ module Xls
       attr_accessor :last_page_footer
       attr_accessor :summary
       attr_accessor :no_data
+      attr_accessor :themes
 
       def initialize (name:, date: Time.now.utc.strftime("%d-%m-%Y"))
 
@@ -135,6 +136,8 @@ module Xls
         #
         @editable = Editable.new
         @editable.load()
+        #
+        @themes = nil
       end
 
       def update_page_size
@@ -188,6 +191,20 @@ module Xls
           end
         end
         @editable.styles_to_xml(node: @builder.doc.children[0])
+
+        #
+        # WRITE THEMES
+        #
+        if nil != @themes
+          Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
+            xml.comment(" THEMES ")
+            xml.themes()  {
+              @themes.each do |name, theme|
+                theme.to_xml(node: @builder.doc.children[0].children.last)
+              end
+            }
+          end
+        end
 
         #
         # WRITE PARAMETERS

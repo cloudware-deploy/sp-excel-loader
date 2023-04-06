@@ -28,6 +28,8 @@ module Xls
       attr_accessor :box
       attr_accessor :attributes
 
+      attr_accessor :theme_style
+
       def initialize
         @report_element        = ReportElement.new
         @text                  = ''

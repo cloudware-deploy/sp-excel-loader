@@ -30,13 +30,26 @@ module Xls
       attr_accessor :box
       attr_accessor :attributes
 
-      def initialize(text:, cell: nil, tracking: nil)
+      # custom
+      attr_accessor :theme_style
+
+      def initialize(binding:, text:, cell: nil, tracking: nil)
         @report_element = ReportElement.new
         @text           = text
         @box            = nil
         @attributes     = nil
         @cell           = cell
         @tracking       = tracking
+        if nil != binding
+          if binding[:theme_style]
+            @report_element.theme_style = binding[:theme_style]
+          end
+          @report_element.properties   = binding[:properties]
+          if binding[:stretch_type] || binding[:stretchType]
+            @report_element.stretch_type = binding[:stretch_type] || binding[:stretchType]
+          end
+          @report_element.print_when_expression = binding[:printWhenExpression]
+        end
       end
 
       def to_xml (a_node)

@@ -34,7 +34,7 @@ module Xls
       attr_reader   :casper_binding
 
       def initialize (binding:, cell: nil, text_field_expression: nil, pattern: nil, tracking: nil)
-        super(text: nil)
+        super(binding: binding, text: nil)
         @text_field_expression     = nil
         @is_blank_when_null        = nil
         @is_stretch_with_overflow  = false
@@ -44,17 +44,11 @@ module Xls
           @pattern                     = pattern || binding[:pattern]
           @pattern_expression          = binding[:patternExpression]
           @is_stretch_with_overflow    = binding[:is_stretch_with_overflow] || binding[:isStretchWithOverflow] || ( binding.include?(:textAdjust) ? 'StretchHeight' == binding[:textAdjust] :false )
-          @report_element.properties   = binding[:properties]
-          if binding[:stretch_type] || binding[:stretchType]
-            @report_element.stretch_type = binding[:stretch_type] || binding[:stretchType]
-          end
-          @report_element.print_when_expression = binding[:printWhenExpression]
           @casper_binding  = binding[:'casper.binding']
         else
           @evaluation_time           = nil
           @pattern                   = nil
           @pattern_expression        = nil
-          @report_element.properties = nil
           @casper_binding            = nil
         end
         @text_field_expression = text_field_expression || binding[:text_field_expression] || binding[:textFieldExpression]
