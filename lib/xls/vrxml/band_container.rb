@@ -142,7 +142,7 @@ module Xls
           page_number_refs = []
           band.children.each do |child|
             if child.kind_of? TextField
-              if "$V{PAGE_NUMBER}" == child.text_field_expression
+              if "$.$$VARIABLES[index]['PAGE_NUMBER']" == child.text_field_expression
                 page_number_refs << child
               end
             end
