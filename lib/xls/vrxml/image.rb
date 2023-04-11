@@ -35,6 +35,7 @@ module Xls
         @v_align          = 'Middle'
         @on_error_type    = 'Blank'
         @image_expression = image_expression || binding[:imageExpression] || ''
+        @report_element.print_when_expression = binding[:printWhenExpression]
       end
 
       def attributes
