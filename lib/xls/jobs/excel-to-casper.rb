@@ -38,8 +38,11 @@ class ExcelToCasper
       begin
         vrxml = converter.convert()
         # find all reports that match the report name all will be overwritten
-        report_name  = job[:original_file].split('.')[0]
-        replacements = Dir.glob("#{config[:paths][:project]}/app/json_templates/**/#{report_name}.vrxml")
+        report_name    = job[:original_file].split('.')[0]
+        replacements   = Dir.glob("#{config[:paths][:project]}/app/json_templates/**/#{report_name}.vrxml")
+        if replacements.size == 0
+          replacements = [ "#{config[:paths][:project]}/app/json_templates/default/#{report_name}.vrxml" ]
+        end
         replacements.each do |replacement|
           File.write(replacement, vrxml)
         end
