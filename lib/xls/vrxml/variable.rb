@@ -77,9 +77,12 @@ module Xls
 
       def initialize (name:, java_class: nil, binding: nil)
         if ! Variable.expr().match name
-          raise "Invalid 'variable' name '#{name}'!"
+          _name = "$.$$VARIABLES[index]['#{name}']"
+          Vrxml::Log.WARNING(msg: "Invalid 'variable' name '#{name} - assuming #{_name} !")
+          @name                   = _name
+        else
+          @name                   = name
         end
-        @name                     = name
         @binding                  = binding || { __origin__: 'auto' }
         @java_class               = java_class || @binding[:java_class] || 'java.lang.String'
         @calculation              = @binding[:calculation]        || 'System'

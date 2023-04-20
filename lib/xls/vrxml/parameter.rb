@@ -44,7 +44,13 @@ module Xls
       
       def initialize(name:, java_class: nil, binding: nil)
         if ! Parameter.expr().match name
-          raise "Invalid 'parameter' name '#{name}'!"
+          if ! Variable.expr().match name
+            _name = "$['#{name}']"
+            Vrxml::Log.WARNING(msg: "Invalid 'parameter' name '#{name} - assuming #{_name} !")
+            @name                   = _name
+          else
+            @name                   = name
+          end
         end
         @name                     = name
         @is_for_prompting         = false
