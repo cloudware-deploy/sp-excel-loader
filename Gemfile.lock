@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    xls2vrxml (0.0.2)
+    xls2vrxml (0.0.8)
       awesome_print
       json
       rubyXL
