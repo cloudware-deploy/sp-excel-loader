@@ -30,6 +30,7 @@ module Xls
       attr_reader :map
       attr_reader :elements
       attr_reader :named_cells
+      attr_reader :widgets
 
       #
       # Initialize a 'Bands' collector.
@@ -49,6 +50,7 @@ module Xls
         @auto_naming = { parameters: {}, fields: {}, variables: {}, expressions:{} }
         @named_cells = {}
         @hammer      = hammer
+        @widgets     = {}
       end
           
       #
@@ -147,6 +149,7 @@ module Xls
             tfe = false
             ie = false
             old_type = nil
+            widget = nil
             if true == expression.is_a?(String)
               if ( m = expression.match(/\$SE\{(.*)\}/) )
                 expression = m[1]
@@ -158,25 +161,32 @@ module Xls
                 expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
                 tfe = true
                 old_type = 'RB'
+                widget = { type: 'RadioButton', off: m[2], on: m[3] }
               elsif ( m = expression.match(/\$RB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\"\w\")\s*,\s*(\"\w\")\s*\}/) )
                 # radio button: $RB{<field_name>,<unchecked>,<checked>}
                 # ( at this point we still need a "JAVA" expression to be translated later on )
                 expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
                 tfe = true
                 old_type = 'RB'
+                widget = { type: 'RadioButton', off: m[2], on: m[3] }
               elsif( m = expression.match(/\$CB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\d{1,})\s*,\s*(\d{1,})\}/) )
                 # check box: $CB{<field_name>,<unchecked>,<checked>}
                 # ( at this point we still need a "JAVA" expression to be translated later on )
                 expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
+                tfe = true
                 old_type = 'CB'
+                widget = { type: 'CheckBox', off: m[2], on: m[3] }
               elsif ( m = expression.match(/\$CB\{(\$[PFV]{1}\{[a-zA-Z0-9_\-\?]+\})\s*,\s*(\btrue\b|\bfalse\b{1})\s*,\s*(\btrue\b|\bfalse\b{1})\}/) )
                 # check box: $CB{<field_name>,<unchecked>,<checked>}
                 # ( at this point we still need a "JAVA" expression to be translated later on )
                 expression = "IF ( ( null == #{m[1]} || #{m[2]} == #{m[1]} ) ; \" \" ; IF ( #{m[3]} == #{m[1]} ; \"X\" ; \" \" ) )"
+                tfe = true
+                old_type = 'CB'
+                widget = { type: 'CheckBox', off: m[2], on: m[3] }
               elsif ( m = expression.match(/\$I\{(.*)\}/) )
                 expression = m[1]
                 ie = true
-                old_type = 'CB'
+                old_type = 'I'
               end
             end
 
@@ -226,6 +236,25 @@ module Xls
               @auto_naming[pfv_pkey][band] ||= {}
               pfv[0][:__cell__] = { ref: pfv[0][:ref] , value: expression, name: "#{band.to_s.gsub(':', '').upcase}_#{pfv[0][:type].to_s.upcase}_#{@auto_naming[pfv_pkey][band].count}" }
               @auto_naming[pfv_pkey][band][pfv[0][:__cell__][:ref]] = pfv[0][:__cell__][:name]
+
+              if nil != widget
+                case pfv[0][:type]
+                when :parameter, :field, :expression
+                  pfv[0][:properties] << { name: 'casper.binding', value: { widget: widget } }
+                  if ['RB', 'CB'].include?(old_type)
+                    if ['true', 'false'].include?(widget[:on].downcase)
+                      widget[:on]  = 'true' == widget[:on].downcase
+                      widget[:off] = 'true' == widget[:off].downcase
+                    elsif m[2].to_i.to_s == m[2]
+                      widget[:on]  = widget[:on].to_i
+                      widget[:off] = widget[:off].to_i
+                    end
+                  end
+                  @widgets[pfv[0][:type]] ||= {}
+                  @widgets[pfv[0][:type]][pfv[0][:name]] = pfv[0]
+                end
+              end
+
             end
 
             # comments 2 fields or expr
@@ -314,6 +343,8 @@ module Xls
                 _item[:properties] << { name: '__is_text_only__'            , value: _is_text_only      }
                 _item[:properties] << { name: '__is_expression__'           , value: _is_expression     }
                 _item[:properties] << { name: '__is_single_pfv__'           , value: _is_single_pfv     }
+                # _item[:properties] << { name: '__type__'                    , value: _item[:type]       } if true == _is_single_pfv
+                # _item[:properties] << { name: '__name__'                    , value: _item[:name]       } if true == _is_single_pfv
                 _item[:properties] << { name: '__suspicious__'              , value: _is_suspicious     }
                 _item[:properties] << { name: '__can_test_for_null__'       , value: _can_test_for_null }
                 add_pfv_if_missing(type: _item[:append], ref: _item[:ref], name: _item[:name])
@@ -340,7 +371,7 @@ module Xls
                       property[:value] = "null != #{property[:value]}"
                     end
                   end
-                end
+                end                
                 # track
                 @elements[:translated][:cells] << _item
               end # pfv.each
@@ -430,7 +461,7 @@ module Xls
               @named_cells[ref] = name
             end
           end
-        end
+        end        
       end # collect
 
       #

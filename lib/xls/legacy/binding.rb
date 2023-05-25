@@ -97,7 +97,7 @@ module Xls
           end
         end
         # SPECIAL CASE i18n_date_format
-        inject_i18n_date_format_if_needed()        
+        inject_i18n_date_format_if_needed()
       end # collect()
 
       private
@@ -147,7 +147,7 @@ module Xls
           if _ext.count > 0
             extracted.concat(_ext)
           end
-          h = {}
+          h = { 'casper.binding': { editable: {} } }
           v.each do | k1, v1 |
             next if v1.nil?
             if v1.is_a?(String) && [:name, :expression, :initial_expression].include?(k1)
@@ -160,9 +160,52 @@ module Xls
             end
           end
           h.delete(:id)
+          # editable
           if h.include?(:editable)
-            h[:editable] = ( 1 == h[:editable] ? true : false )
+            h[:'casper.binding'][:editable][:is] = ( 1 == h[:editable] ? true : false )
+            h.delete(:editable)
           end
+          # widget
+          if h.include?(:widget)
+            h[:'casper.binding'][:editable][:widget] ||= {}
+            h[:'casper.binding'][:editable][:widget][:type] = h[:widget]
+            h.delete(:widget)
+          end
+          if h.include?(:uri)
+            h[:'casper.binding'][:editable][:widget] ||= {}
+            h[:'casper.binding'][:editable][:widget][:uri] = h[:uri]
+            h.delete(:uri)
+          end
+          if h.include?(:cc_field_id)
+            h[:'casper.binding'][:editable][:widget] ||= {}
+            h[:'casper.binding'][:editable][:widget][:cc_field_id] = h[:cc_field_id]
+            h.delete(:cc_field_id)
+          end
+          if h.include?(:cc_field_name)
+            h[:'casper.binding'][:editable][:widget] ||= {}
+            h[:'casper.binding'][:editable][:widget][:cc_field_name] = h[:cc_field_name]
+            h.delete(:cc_field_name)
+          end
+          if h.include?(:cc_field_patch)
+            h[:'casper.binding'][:editable][:patch] ||= {}
+            h[:'casper.binding'][:editable][:patch][:field] ||= { relationship: 'TODO', name: 'TODO', type: 'TODO'}
+            h[:'casper.binding'][:editable][:patch][:field] = h[:cc_field_patch]
+            h.delete(:cc_field_patch)
+          end
+          # 
+          if true == ( h[:'casper.binding'][:editable][:is] || false )
+            if nil == h[:'casper.binding'][:editable][:field]
+              h[:'casper.binding'][:editable][:field] = { name: id, type: h[:java_class] } # relationship = nil -> defaults to $['lines'][index] when it's a field field
+              if k.start_with?('$P{')
+                h[:'casper.binding'][:editable][:field][:kind] = 'parameter'
+              elsif k.start_with?('$F{')
+                h[:'casper.binding'][:editable][:field][:kind] = 'field'
+              else
+                raise "Invalid 'editable' type: must a parameter or a field - not a #{k}"
+              end
+              end
+          end
+          #
           translation[id] = { name: id, value: h, updated_at: nil }
         end
         # done

@@ -141,15 +141,29 @@ module Xls
           end
           if @collector.bands.named_cells.include?(_ref)
             value[:name] = @collector.bands.named_cells[_ref]
-            # inject missing properties
+            # inject or merge missing properties
             if nil != tables[cell[:append]] && nil != tables[cell[:append]][cell[:name]] && nil != tables[cell[:append]][cell[:name]][:value]
               tables[cell[:append]][cell[:name]][:value].each do | k, v |
-                if false == value[:value].include?(k)                  
+                if false == value[:value].include?(k)
                   value[:value][k] = v
+                elsif value[:value][k].is_a?(Hash)
+                  value[:value][k] = value[:value][k].deep_merge(v)
                 end
               end
             end
           end
+          # has binding?
+          if true == value[:value].include?(:'casper.binding')
+            # ... is editable?
+            if true == value[:value][:'casper.binding'].include?(:editable) && true == value[:value][:'casper.binding'][:editable][:is]
+              # ... and no widget?
+              if false == value[:value][:'casper.binding'].include?(:widget)
+                # ... widget is 'InputBox'
+                value[:value][:'casper.binding'][:widget] = { type: 'InputBox' }
+              end
+            end
+          end
+          #
           value[:updated_at] ||= date
           # done
           tables[:named_cells][_ref] = value
