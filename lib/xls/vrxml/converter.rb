@@ -1008,7 +1008,7 @@ module Xls
           _binding, _patttern = get_binding_property_for_ref_or_named_cell(name: cell[:name], property: :presentation)
           if nil != _binding
             if nil != binding
-              binding = binding.merge(_binding)
+              binding = binding.deep_merge(_binding)
             else
               binding = _binding
             end
