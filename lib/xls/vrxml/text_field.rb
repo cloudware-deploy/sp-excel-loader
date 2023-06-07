@@ -74,7 +74,24 @@ module Xls
         end
         if nil != @casper_binding
           @report_element.properties ||= []
-          @report_element.properties << Property.new('casper.binding', @casper_binding.to_json)
+          #
+          ignore = true
+          if @casper_binding.keys.count < 1
+            # pass
+          elsif ( 1 == casper_binding.keys.count && true == @casper_binding.has_key?(:editable) )
+            if 0 == @casper_binding[:editable].keys.count
+              # pass
+            elsif ( 1 == @casper_binding[:editable].keys.count && true == @casper_binding[:editable].has_key?(:is) && false == @casper_binding[:editable][:is] )
+              # pass
+            else
+              ignore = false
+            end
+          else
+            ignore = false
+          end
+          if false == ignore
+            @report_element.properties << Property.new('casper.binding', @casper_binding.to_json)
+          end
         end
         @report_element.to_xml(a_node.children.last)
         @box.to_xml(a_node.children.last) unless @box.nil?

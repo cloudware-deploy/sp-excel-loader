@@ -24,6 +24,7 @@ module Xls
 
     class Group
 
+      attr_accessor :order
       attr_accessor :name
       attr_accessor :group_expression
       attr_accessor :group_header
@@ -31,17 +32,19 @@ module Xls
       attr_accessor :is_start_new_page
       attr_accessor :is_reprint_header_on_each_page
 
-      def initialize (a_name = nil)
-        @name = a_name || 'Group1'
+      def initialize (order:, name: nil)
+        @order = order
+        @name = name || 'Group1'
         @group_expression  = "$['lines'][index]['data_row_type']"
         @is_start_new_page = nil
         @is_reprint_header_on_each_page = nil
-        @group_header = GroupHeader.new
-        @group_footer = GroupFooter.new
+        @group_header = GroupHeader.new(order: -1)
+        @group_footer = GroupFooter.new(order: -1)
       end
 
       def attributes
         rv = Hash.new
+        rv['order'] = @order
         rv['name'] = @name
         rv['isStartNewPage'] = @is_start_new_page unless  @is_start_new_page.nil?
         rv['isReprintHeaderOnEachPage'] = @is_reprint_header_on_each_page unless @is_reprint_header_on_each_page.nil?

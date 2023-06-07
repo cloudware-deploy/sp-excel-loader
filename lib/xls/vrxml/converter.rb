@@ -114,6 +114,7 @@ module Xls
         @basic_expressions           = false
         @allow_sub_bands             = a_allow_sub_bands
         @use_casper_bindings         = false
+        @container_band_index        = -1
       end
 
       #
@@ -177,8 +178,10 @@ module Xls
                   end
                 end
               # -
-              when 'GROUP'
-                @report.group ||= Group.new
+              when 'GROUP'                
+                if nil == @report.group 
+                  @report.group = Group.new(order: -1)
+                end
                 binding.each do | k, v |
                   _attr = k.to_s.to_underscore
                   next if nil == v
@@ -310,14 +313,19 @@ module Xls
           if nil == table
             table = Nokogiri::XML::Node.new("table", xml)
             table['relationship'] = relationship
+            # table['order'] = detail_band[0]['order']
             if group.count > 0
               group[0].after(table)
+              table['order'] = group[0]['order']
             elsif column_header.count > 0
               column_header[0].after(table)
+              table['order'] = column_header[0]['order']
             elsif column_footer.count > 0
               column_footer[0].after(table)
+              table['order'] = column_footer[0]['order']
             else # detail_band.count
               detail_band[0].after(table)
+              table['order'] = detail_band[0]['order']
             end
           end
           # log
@@ -645,63 +653,113 @@ module Xls
         case a_row_tag
         when /CasperBinding:*/
           @use_casper_bindings = a_row_tag.split(':')[1].strip == 'true'
-        when /BG\d*:/
-          @report.background ||= Background.new
+        when /BG\d*:/          
+          if nil == @report.background 
+            @container_band_index += 1
+            @report.background = Background.new(order: @container_band_index)
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.background.bands << @current_band
           @band_type = a_row_tag
-        when /TL\d*:/
-          @report.title ||= Title.new
+        when /TL\d*:/          
+          if nil == @report.title 
+            @container_band_index += 1
+            @report.title = Title.new(order: @container_band_index)
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.title.bands << @current_band
           @band_type = a_row_tag
-        when /PH\d*:/
-          @report.page_header ||= PageHeader.new
+        when /PH\d*:/          
+          if nil == @report.page_header 
+            @container_band_index += 1
+            @report.page_header = PageHeader.new(order: @container_band_index)
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.page_header.bands << @current_band
           @band_type = a_row_tag
-        when /CH\d*:/
-          @report.column_header ||= ColumnHeader.new
+        when /CH\d*:/          
+          if nil == @report.column_header 
+            @container_band_index += 1
+            @report.column_header = ColumnHeader.new(order: @container_band_index)
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.column_header.bands << @current_band
           @band_type = a_row_tag
-        when /DT\d*/
-          @report.detail ||= Detail.new
+        when /DT\d*/          
+          if nil == @report.detail 
+            @container_band_index += 1
+            @report.detail = Detail.new(order: @container_band_index)
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.detail.bands << @current_band
           @band_type = a_row_tag
-        when /CF\d*:/
-          @report.column_footer ||= ColumnFooter.new
+        when /CF\d*:/          
+          if nil == @report.column_footer 
+            @container_band_index += 1
+            @report.column_footer = ColumnFooter.new(order: @container_band_index)
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.column_footer.bands << @current_band
           @band_type = a_row_tag
-        when /PF\d*:/
-          @report.page_footer ||= PageFooter.new
-          @current_band = Band.new(tag: a_row_tag, cell: cell)
-          @report.page_footer.bands << @current_band
-          @band_type = a_row_tag
-        when /LPF\d*:/
-          @report.last_page_footer ||= LastPageFooter.new
+        when /LPF\d*:/          
+          if nil == @report.last_page_footer 
+            @container_band_index += 1
+            @report.last_page_footer = LastPageFooter.new(order: @container_band_index)
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.last_page_footer.bands << @current_band
           @band_type = a_row_tag
-        when /SU\d*:/
-          @report.summary ||= Summary.new
+        when /PF\d*:/          
+          if nil == @report.page_footer 
+            @container_band_index += 1
+            @report.page_footer = PageFooter.new(order: @container_band_index)
+          end
+          @current_band = Band.new(tag: a_row_tag, cell: cell)
+          @report.page_footer.bands << @current_band
+          @band_type = a_row_tag        
+        when /SU\d*:/          
+          if nil == @report.summary 
+            @container_band_index += 1
+            @report.summary = Summary.new(order: @container_band_index)
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.summary.bands << @current_band
           @band_type = a_row_tag
-        when /ND\d*:/
-          @report.no_data ||= NoData.new
+        when /ND\d*:/          
+          if nil == @report.no_data 
+            @container_band_index += 1
+            @report.no_data = NoData.new(order: @container_band_index)
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.no_data.bands << @current_band
           @band_type = a_row_tag
-        when /GH\d*:/
-          @report.group ||= Group.new
+        when /GH\d*:/          
+          if nil == @report.group 
+            @container_band_index += 1
+            @report.group = Group.new(order: @container_band_index)
+          elsif -1 == @report.group.order
+            @container_band_index += 1
+            @report.group.order = @container_band_index
+          end
+          if 0 == @report.group.group_header.bands.count
+            @container_band_index += 1
+            @report.group.group_header.order = @container_band_index
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.group.group_header.bands << @current_band
           @band_type = a_row_tag
-        when /GF\d*:/
-          @report.group ||= Group.new
+        when /GF\d*:/          
+          if nil == @report.group 
+            @container_band_index += 1
+            @report.group = Group.new(order: @container_band_index)
+          elsif -1 == @report.group.order
+            @container_band_index += 1
+            @report.group.order = @container_band_index
+          end
+          if 0 == @report.group.group_footer.bands.count
+            @container_band_index += 1
+            @report.group.group_footer.order = @container_band_index
+          end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.group.group_footer.bands << @current_band
           @band_type = a_row_tag

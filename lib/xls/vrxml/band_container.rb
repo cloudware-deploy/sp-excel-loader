@@ -25,14 +25,17 @@ module Xls
     class BandContainer
 
       attr_accessor :bands
+      attr_accessor :order
 
-      def initialize
+      def initialize(order:)
+        @order      = order
         @bands      = Array.new
         @band_type  = nil
       end
 
       def attributes
         rv = Hash.new
+        rv['order'] = @order
         return rv
       end
 
