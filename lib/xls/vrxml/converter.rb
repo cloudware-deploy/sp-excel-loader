@@ -746,10 +746,10 @@ module Xls
             @container_band_index += 1
             @report.group.order = @container_band_index
           end
-          if 0 == @report.group.group_header.bands.count
+          # if 0 == @report.group.group_header.bands.count
             @container_band_index += 1
             @report.group.group_header.order = @container_band_index
-          end
+          # end
           @current_band = Band.new(tag: a_row_tag, cell: cell)
           @report.group.group_header.bands << @current_band
           @band_type = a_row_tag
