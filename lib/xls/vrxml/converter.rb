@@ -258,6 +258,11 @@ module Xls
 
         report.themes = Theme.parse(workbook: @workbook)
 
+        other_styles = Styles.parse(workbook: @workbook)
+        other_styles.each do | n, v |
+          report.add_other_style(name: n, value: v)
+        end
+
         #
         # Raise an error if we still have expressions to convert.
         #

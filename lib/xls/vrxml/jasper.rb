@@ -49,6 +49,7 @@ module Xls
       attr_reader :named_cells
 
       attr_reader :styles
+      attr_reader :other_styles
 
       attr_accessor :style_set
       attr_accessor :builder
@@ -103,6 +104,7 @@ module Xls
         @fields          = Hash.new
         @variables       = Hash.new
         @styles          = Hash.new
+        @other_styles    = Hash.new
         @style_set       = Set.new
 
         @named_cells    = Hash.new
@@ -183,13 +185,19 @@ module Xls
         # WRITE STYLES
         #
         Nokogiri::XML::Builder.with(@builder.doc.children[0]) do |xml|
-          xml.comment(" STYLES ")
+          xml.comment(" AUTOMATIC STYLES ")
         end
         @styles.each do |name, style|
           if @style_set.include? name
             style.to_xml(@builder.doc.children[0])
           end
         end
+        # other styles
+        @other_styles.each do |name, value|
+          value.to_xml(node: @builder.doc.children[0])
+        end
+        
+        # editable
         @editable.styles_to_xml(node: @builder.doc.children[0])
 
         #
@@ -343,6 +351,16 @@ module Xls
       #
       def add_style(name:, value:)
         @styles[name] = value
+      end
+
+      #
+      # Add 'other' style.
+      #
+      # @param name  Unique name ( same as ID ).
+      # @param value Properties.
+      #
+      def add_other_style(name:, value:)
+        @other_styles[name] = value
       end
 
       #

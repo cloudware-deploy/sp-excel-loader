@@ -69,8 +69,11 @@ module Xls
       end
 
       def styles_to_xml(node:)
-        @styles.each do | _, style |
-          style.to_xml(node)
+        Nokogiri::XML::Builder.with(node) do |xml|
+          xml.comment(" EDITABLE STYLES ")
+          @styles.each do | _, style |
+            style.to_xml(node)
+          end
         end
       end
 

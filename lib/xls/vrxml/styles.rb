@@ -22,47 +22,41 @@
 module Xls
   module Vrxml
 
-    class Theme < Stylable
+    class Styles < Stylable
 
-      def to_xml(node:, theme: nil)
+      def to_xml(node:)
         Nokogiri::XML::Builder.with(node) do |xml|
-          xml.comment(" Theme: #{@name} ")
-          xml.theme(attributes) {
-            @styles.each do | name, style |
-              style.to_xml(node.children.last)
-            end
-          }
+          xml.comment(" #{@name.upcase} ")
+          @styles.each do | name, style |
+            style.to_xml(node)
+          end
         end
       end
 
       def self.parse(workbook:)
-        themes = {}
+        styles = {}
         workbook.worksheets.each do |ws|
-          if false == ws.sheet_name.start_with?('Theme')
+          if 'Styles' != ws.sheet_name
             next
           end
-          theme = nil
+          style = Styles.new(name: ws.sheet_name)
+          styles[style.name] = style
           for row in ws.dimension.ref.row_range
             if nil == ws[row] || nil == ws[row][0] || nil == ws[row][0].value
               next
             end
             tag = ws[row][0].value.to_s.strip
             case tag
-            when /Theme:.+/i
-              name = tag.split(':')[1].strip
-              if nil != name && false == themes.include?(name)
-                theme = Theme.new(name: ws.sheet_name)
-                themes[name] = theme
-              end
             when /Style:.+/i
-              if nil == theme
-                raise "Missing theme object!"
+              if nil == style
+                raise "Missing style object!"
               end
-              theme.add(style: xf_to_style(named: tag.split(':')[1].strip, workbook: workbook, style_index: ws[row][2].style_index))
+              style.add(style: xf_to_style(named: tag.split(':')[1].strip, workbook: workbook, style_index: ws[row][2].style_index))
             end
           end
+          break
         end
-        return themes
+        return styles
       end
 
     end # of class 'Theme'
