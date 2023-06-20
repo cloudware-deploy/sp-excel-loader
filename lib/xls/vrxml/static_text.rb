@@ -34,6 +34,7 @@ module Xls
       attr_accessor :theme_style
 
       def initialize(binding:, text:, cell: nil, tracking: nil)
+        @binding        = Marshal.load(Marshal.dump(binding))
         @report_element = ReportElement.new
         @text           = text
         @box            = nil
@@ -60,11 +61,29 @@ module Xls
           xml.staticText(attributes)
         end
         @report_element.to_xml(a_node.children.last)
-        @box.to_xml(a_node.children.last) unless @box.nil?
+        box_to_xml(a_node.children.last)
         Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
           xml.text_ {
             xml.cdata(@text)
           }
+        end
+      end
+
+      def box_to_xml(a_node)
+        if nil != @box 
+          if nil != @binding && nil != @binding[:padding]
+            if @binding[:padding].is_a?(Hash)
+              @binding[:padding].each do | k, v |
+                _attr = k.to_s.to_underscore
+                if @box.respond_to?(_attr.to_sym)
+                  @box.send("#{_attr}=", v)
+                end
+              end
+            else
+              @box.padding = @binding[:padding].to_i
+            end
+          end
+          @box.to_xml(a_node)
         end
       end
 

@@ -94,7 +94,7 @@ module Xls
           end
         end
         @report_element.to_xml(a_node.children.last)
-        @box.to_xml(a_node.children.last) unless @box.nil?
+        box_to_xml(a_node.children.last)
         if nil != @text_field_expression && @text_field_expression.length > 0
           Nokogiri::XML::Builder.with(a_node.children.last) do |xml|
             xml.textFieldExpression {

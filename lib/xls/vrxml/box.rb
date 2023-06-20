@@ -30,7 +30,7 @@ module Xls
       attr_accessor :right_pen
       attr_accessor :padding
       attr_accessor :top_padding
-      attr_accessor :leftPadding
+      attr_accessor :left_padding
       attr_accessor :bottom_padding
       attr_accessor :right_padding
 
@@ -41,7 +41,7 @@ module Xls
         @right_pen      = nil
         @padding        = 1
         @top_padding    = nil
-        @leftPadding    = nil
+        @left_padding   = nil
         @bottom_padding = nil
         @right_padding  = nil
       end
@@ -50,7 +50,7 @@ module Xls
         rv = Hash.new
         rv['padding']       = @padding        unless @padding.nil?
         rv['topPadding']    = @top_padding    unless @top_padding.nil?
-        rv['leftPadding']   = @leftPadding    unless @leftPadding.nil?
+        rv['leftPadding']   = @left_padding   unless @left_padding.nil?
         rv['bottomPadding'] = @bottom_padding unless @bottom_padding.nil?
         rv['rightPadding']  = @right_padding  unless @right_padding.nil?
         return rv
