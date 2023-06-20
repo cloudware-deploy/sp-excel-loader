@@ -54,6 +54,9 @@ module Xls
       end
 
       def to_xml (a_node)
+        # -
+        background_to_xml(a_node)
+        # -
         Nokogiri::XML::Builder.with(a_node) do |xml|
           if nil != @cell
             xml.comment(" #{@cell[:name] || @cell[:ref] || ''}#{@tracking ? " #{@tracking}" : '' } ")
@@ -67,6 +70,8 @@ module Xls
             xml.cdata(@text)
           }
         end
+        # -
+        foreground_to_xml(a_node)
       end
 
       def box_to_xml(a_node)
@@ -84,6 +89,50 @@ module Xls
             end
           end
           @box.to_xml(a_node)
+        end
+      end
+
+      #
+      # Add a 'shape' node as 'background'.
+      #
+      # @param node Node where to append this 'shape'
+      #.
+      def background_to_xml(a_node)
+        shape_to_xml(as: :background, node: a_node)        
+      end
+
+      #
+      # Add a 'shape' node as 'foreground'.
+      #
+      # @param node Node where to append this 'shape'.
+      #
+      def foreground_to_xml(a_node)
+        shape_to_xml(as: :foreground, node: a_node)
+      end
+
+      private
+
+      #
+      # Add a 'shape' node to a node.
+      #
+      # @param as   One of ':background', ':foreground'
+      # @param node Node where to append this 'shape'.
+      #
+      def shape_to_xml(as:, node:)
+        if nil != @binding && nil != @binding[as]
+          if nil != @binding[as][:shape]
+            case @binding[as][:shape]
+            when 'rectangle'
+              r = Rectangle.new(cell: @cell, tracking: @tracking, comment: "AS #{as.to_s.upcase} OF")
+              r.x      = @report_element.x
+              r.y      = @report_element.y
+              r.width  = @binding[as][:width]  || @report_element.width
+              r.height = @binding[as][:height] || @report_element.height
+              r.radius = @binding[as][:radius]
+              r.to_xml(node)
+            else
+            end
+          end
         end
       end
 

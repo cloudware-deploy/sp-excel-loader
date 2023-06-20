@@ -66,6 +66,9 @@ module Xls
       end
 
       def to_xml (a_node)
+        # -
+        background_to_xml(a_node)
+        # -
         Nokogiri::XML::Builder.with(a_node) do |xml|
           if nil != @cell
             xml.comment(" #{@cell[:name] || @cell[:ref] || ''}#{@tracking ? " #{@tracking}" : '' } ")
@@ -109,9 +112,11 @@ module Xls
             }
           end
         end
+        # -
+        foreground_to_xml(a_node)
       end
 
-    end
+    end # of class 'TextField'
 
   end # of module 'Vrxml'
 end # of module 'Xls'
