@@ -281,16 +281,16 @@ module Xls
       # @param name   Common name.
       # @param caller For debug purpose only.
       #
-      def add_parameter(id:, name:, java_class:, defaultValueExpression: nil, caller: caller_locations(1,1)[0].base_label, silent: false)
+      def add_parameter(id:, name:, java_class:, defaultValueExpression: nil, caller: caller_locations(1,1)[0].base_label, injected: false)
         if @parameters.has_key?(name)
           return
         end
-        @parameters[name] = Parameter.new(name: name, java_class: java_class)
+        @parameters[name] = Parameter.new(name: name, java_class: java_class, injected: injected)
         if nil != defaultValueExpression
           @parameters[name].default_value_expression = defaultValueExpression
         end
         # log
-        if false == silent
+        if false == injected
           Vrxml::Log.WARNING(msg: "#{__method__}(id: #{id}, name:#{name}, ...) from #{caller} - was not declared assuming #{java_class || 'java.lang.String'}")
         end
       end

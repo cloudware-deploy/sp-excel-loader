@@ -819,7 +819,7 @@ module Xls
                     end
                   end
                 else
-                  Xls::Vrxml::Log.WARNING(msg: "Don't know how to set '%s%s".yellow % [ "#{k.to_s}".red, "' attribute / property!".yellow ])
+                  Xls::Vrxml::Log.WARNING(msg: "Don't know how to set %s '%s%s".yellow % [ @band_type, "#{k.to_s}".red, "' attribute / property!".yellow ])
                 end
               end
             end
@@ -1135,7 +1135,7 @@ module Xls
           if nil != rv && rv.is_a?(TextField)
             if nil != binding && 'java.util.Date' == binding[:java_class]
               # inject i18n_date_format parameter ( won't be replace if is already present )
-              @report.add_parameter(id: "$['i18n_date_format']", name: "$['i18n_date_format']", java_class: "java.lang.String", defaultValueExpression: 'dd/MM/yyyy', silent: true)
+              @report.add_parameter(id: "$['i18n_date_format']", name: "$['i18n_date_format']", java_class: "java.lang.String", defaultValueExpression: 'dd/MM/yyyy', injected: true)
               # override  - server DID SEND AND MUST KEEPING SENDING DATES WITH PATTERN yyyy-MM-dd
               if binding[:__original_java_expression__]
                 binding[:text_field_expression], _tmp = Vrxml::Expression.translate(expression: "DateFormat.parse(#{binding[:__original_java_expression__]}, 'yyyy-MM-dd')", relationship: @relationship, nce: @not_converted_expressions)
@@ -1153,7 +1153,8 @@ module Xls
             end
           end
         end
-
+        # + i18n_currency_pattern
+        @report.add_parameter(id: "$['i18n_currency_pattern']", name: "$['i18n_currency_pattern']", java_class: "java.lang.String", defaultValueExpression: '#,##0.00;(#,##0.00)', injected: true)
 
         # done
         return rv

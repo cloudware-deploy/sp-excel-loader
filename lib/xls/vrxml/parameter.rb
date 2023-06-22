@@ -41,8 +41,9 @@ module Xls
       attr_accessor :is_for_prompting
       
       attr_accessor :binding
+      attr_reader   :injected
       
-      def initialize(name:, java_class: nil, binding: nil)
+      def initialize(name:, java_class: nil, binding: nil, injected: false)
         if ! Parameter.expr().match name
           if ! Variable.expr().match name
             _name = "$['#{name}']"
@@ -55,6 +56,7 @@ module Xls
         @name                     = name
         @is_for_prompting         = false
         @binding                  = binding || { __origin__: 'auto' }
+        @injected                 = injected
         @java_class               = java_class || @binding[:java_class] || 'java.lang.String'
         @description              = @binding[:description] || nil
         @default_value_expression = @binding[:default] || @binding[:defaultValueExpression] || name
@@ -71,7 +73,11 @@ module Xls
       def to_xml (a_node)
         Nokogiri::XML::Builder.with(a_node) do |xml|
           if nil != @binding[:'__origin__'] && 'auto' == @binding[:'__origin__']
-            xml.comment(" Warning: #{self.class.name} named #{@name} type was NOT declared, assuming #{@java_class} ")
+            if true == @injected
+              xml.comment(" not declated, injected during conversion ")
+            else
+              xml.comment(" Warning: #{self.class.name} named #{@name} type was NOT declared, assuming #{@java_class} ")
+            end
           end
           xml.parameter(attributes) {
             unless @description.nil?
