@@ -33,6 +33,7 @@ module Xls
       attr_accessor :auto_float
       attr_accessor :auto_stretch
       attr_accessor :stretch_type
+      attr_reader   :casper_binding
       
       def initialize(tag:, cell: nil)
         @tag                   = tag
@@ -52,6 +53,11 @@ module Xls
         rv['height']    = @height
         rv['splitType'] = @split_type
         return rv
+      end
+
+      def casper_binding=(value)
+        @properties ||= []
+        @properties << Property.new('casper.binding', value.to_json)
       end
 
       def to_xml (a_node)

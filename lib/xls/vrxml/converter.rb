@@ -818,6 +818,13 @@ module Xls
                       declare_expression_entities(@report.group.group_expression)
                     end
                   end
+                when /DT\d*:/
+                  if nil != @current_band
+                    _attr.gsub!('.', '_')
+                    if @current_band.respond_to?(_attr.to_sym)
+                      @current_band.send("#{_attr}=", v)
+                    end
+                  end
                 else
                   Xls::Vrxml::Log.WARNING(msg: "Don't know how to set %s '%s%s".yellow % [ @band_type, "#{k.to_s}".red, "' attribute / property!".yellow ])
                 end
@@ -1153,6 +1160,8 @@ module Xls
             end
           end
         end
+        # + i18n_date_format_from_db
+        @report.add_parameter(id: "$['i18n_date_format_from_db']", name: "$['i18n_date_format_from_db']", java_class: "java.lang.String", defaultValueExpression: 'yyyy-MM-dd', injected: true)
         # + i18n_currency_pattern
         @report.add_parameter(id: "$['i18n_currency_pattern']", name: "$['i18n_currency_pattern']", java_class: "java.lang.String", defaultValueExpression: '#,##0.00;(#,##0.00)', injected: true)
 
